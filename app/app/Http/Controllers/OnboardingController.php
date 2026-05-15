@@ -71,6 +71,29 @@ class OnboardingController extends Controller
         ]);
     }
 
+    /**
+     * Live list of rendered variants for this onboarding session — used by
+     * the preview page to swap placeholder tiles for the real PNG as soon
+     * as each render lands, instead of waiting for the whole batch.
+     */
+    public function renders(OnboardingSession $session): JsonResponse
+    {
+        $brandId = $session->brand_profile_id;
+        $rows = $brandId
+            ? \DB::table('ad_renders')
+                ->join('ad_variants', 'ad_variants.id', '=', 'ad_renders.ad_variant_id')
+                ->join('campaigns', 'campaigns.id', '=', 'ad_variants.campaign_id')
+                ->where('campaigns.brand_profile_id', $brandId)
+                ->where('ad_renders.render_status', 'completed')
+                ->select('ad_variants.id as variant_id', 'ad_renders.asset_url')
+                ->get()
+            : collect();
+        return response()->json([
+            'status'  => $session->status,
+            'renders' => $rows,
+        ]);
+    }
+
     public function preview(OnboardingSession $session): View
     {
         $brand = $session->brandProfile;

@@ -80,5 +80,9 @@ class GenerateAdConceptsJob implements ShouldQueue
             'campaign_id' => $campaign->id,
             'count'       => count($concepts),
         ]);
+        // Variants exist now — flip the session to a streaming state so the
+        // processing page can redirect to /preview and start polling for
+        // renders as they arrive instead of waiting for the full pipeline.
+        $session->update(['status' => 'preview_streaming']);
     }
 }

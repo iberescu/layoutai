@@ -63,7 +63,9 @@ function processingPoller(statusUrl, previewUrl) {
                 const data = await res.json();
                 this.progress = data.progress;
                 this.steps = this.steps.map(s => ({ ...s, status: data.steps[s.key]?.status ?? 'pending' }));
-                if (data.status === 'preview_ready' || data.status === 'completed') {
+                // Jump to the preview the moment variants exist — the preview
+                // page will live-update tiles as each render lands.
+                if (['preview_streaming', 'preview_ready', 'completed'].includes(data.status)) {
                     clearInterval(this.interval);
                     window.location.href = previewUrl;
                 }

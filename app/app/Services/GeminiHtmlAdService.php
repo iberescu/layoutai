@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\AdVariant;
 use App\Models\BrandProfile;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -39,6 +40,123 @@ class GeminiHtmlAdService
 
         Log::info('GeminiHtmlAdService falling back to template service for variant ' . $variant->id);
         return app(AdTemplateService::class)->buildHtml($variant, $brand, $imageUrl, $logoUrl);
+    }
+
+    /**
+     * Build HTML for many variants in one Gemini call. All variants must share
+     * the same BrandProfile (we batch by campaign). Returns:
+     *   [variant_id => ['html' => ..., 'css' => ...]]
+     * Variants missing from the response (or that fail JSON parsing) are
+     * silently omitted — caller falls back per-variant.
+     *
+     * @param Collection<int,AdVariant> $variants
+     * @return array<int,array{html:string,css:string}>
+     */
+    public function buildHtmlBatch(Collection $variants, BrandProfile $brand, ?string $logoUrl): array
+    {
+        if ($variants->isEmpty()) {
+            return [];
+        }
+
+        $prompt = $this->batchPrompt($variants, $brand, $logoUrl);
+        $schema = [
+            'type' => 'object',
+            'properties' => [
+                'ads' => [
+                    'type'  => 'array',
+                    'items' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'variant_id' => ['type' => 'integer'],
+                            'html'       => ['type' => 'string'],
+                            'css'        => ['type' => 'string'],
+                        ],
+                        'required' => ['variant_id', 'html'],
+                    ],
+                ],
+            ],
+            'required' => ['ads'],
+        ];
+
+        $payload = $this->gemini->generateJson($prompt, $schema);
+        $rows = is_array($payload['ads'] ?? null) ? $payload['ads'] : [];
+        $byId = $variants->keyBy('id');
+
+        $out = [];
+        foreach ($rows as $row) {
+            $vid = (int) ($row['variant_id'] ?? 0);
+            $html = (string) ($row['html'] ?? '');
+            if ($vid === 0 || $html === '' || ! isset($byId[$vid])) {
+                continue;
+            }
+            $out[$vid] = [
+                'html' => $this->sanitise($html, $byId[$vid]),
+                'css'  => (string) ($row['css'] ?? ''),
+            ];
+        }
+        return $out;
+    }
+
+    private function batchPrompt(Collection $variants, BrandProfile $brand, ?string $logoUrl): string
+    {
+        $primary   = $brand->primaryColor();
+        $accent    = $brand->accentColor();
+        $secondary = $brand->secondaryColor();
+        $tone      = $brand->brand_voice_json['tone'] ?? 'modern, confident';
+        $logo      = $logoUrl ?: '';
+
+        $items = $variants->map(function (AdVariant $v) {
+            return [
+                'variant_id'  => $v->id,
+                'width'       => $v->size_width,
+                'height'      => $v->size_height,
+                'headline'    => $v->headline ?? '',
+                'subheadline' => $v->subheadline ?? '',
+                'cta'         => $v->cta ?? 'Learn more',
+                'layout'      => $v->layout_type ?? 'image-background-with-card-overlay',
+                'image_url'   => $v->image?->stored_url ?? '',
+            ];
+        })->values()->all();
+
+        $itemsJson = json_encode($items, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+
+        return <<<PROMPT
+You are an expert HTML/CSS designer who builds polished, banner-ad-quality
+display ads. You will receive an ARRAY of ad specs and must return STRICT JSON:
+{ "ads": [ { "variant_id": <int>, "html": "<full document>", "css": "" }, ... ] }
+
+The "ads" array MUST contain one entry per input spec, with the same variant_id.
+Do not reorder, drop, or invent variant_ids.
+
+For each ad, follow these constraints exactly:
+- One self-contained HTML document (doctype + html + head + body + inline <style>).
+- The body must contain ONE root element that is EXACTLY (width)px wide and (height)px
+  tall, with no scrollbars and no overflow.
+- Inline all styles in a single <style> tag. No external CSS or fonts. Use system
+  fonts: 'Inter', -apple-system, 'Segoe UI', sans-serif.
+- Use these brand colors: primary {$primary}, accent {$accent}, secondary {$secondary}.
+- Tone of voice: {$tone}.
+- Embed the spec's image_url as the visual (via <img> or background-image). Do NOT
+  use placeholder URLs.
+- If a logo URL is given, place it small and unobtrusive: {$logo}
+- Use the supplied headline / subheadline / CTA copy verbatim — do not rewrite.
+- Make the CTA look like a clickable button (rounded, contrasting color).
+- Apply a subtle dark gradient overlay on the image so text stays readable.
+- Scale text to the ad size so headlines fill the available space without overflowing.
+- For wide leaderboard formats (width >> height) put copy on the left, image on the right.
+- For tall skyscrapers/half-pages (height >> width) stack image on top, copy below.
+- For squares / medium rectangles place copy at the bottom over the image.
+- Absolutely NO text, watermark, or logo INSIDE the image — those are overlay elements.
+- Do NOT output anything outside the top-level JSON object.
+
+Brand context:
+- Company: {$brand->company_name}
+- Industry: {$brand->industry}
+- Description: {$brand->description}
+
+Ad specs (process every entry):
+{$itemsJson}
+PROMPT;
     }
 
     private function prompt(AdVariant $variant, BrandProfile $brand, ?string $imageUrl, ?string $logoUrl): string

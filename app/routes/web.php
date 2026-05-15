@@ -19,6 +19,7 @@ Route::post('/create/start', [OnboardingController::class, 'start'])->name('crea
 Route::get('/create/{session}/processing', [OnboardingController::class, 'processing'])->name('create.processing');
 Route::get('/create/{session}/status', [OnboardingController::class, 'status'])->name('create.status');
 Route::get('/create/{session}/preview', [OnboardingController::class, 'preview'])->name('create.preview');
+Route::get('/create/{session}/renders', [OnboardingController::class, 'renders'])->name('create.renders');
 Route::get('/create/{session}/claim', [OnboardingController::class, 'claim'])->name('create.claim');
 Route::post('/create/{session}/claim', [OnboardingController::class, 'storeAccount'])->name('create.claim.store');
 

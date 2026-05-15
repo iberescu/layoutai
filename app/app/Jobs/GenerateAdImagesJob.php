@@ -39,6 +39,14 @@ class GenerateAdImagesJob implements ShouldQueue
             GenerateAdImageJob::dispatch($id);
         }
 
+        // Kick off HTML batches in parallel. Each batch waits ~3s and re-queues
+        // until its 5 images are ready — Gemini gets called once per 5 variants
+        // instead of once per variant.
+        foreach ($ids->chunk(5) as $chunk) {
+            BuildAdHtmlBatchJob::dispatch($chunk->values()->all())
+                ->delay(now()->addSeconds(6));
+        }
+
         $session->setStep('images', 'completed', ['count' => $ids->count()]);
     }
 }
