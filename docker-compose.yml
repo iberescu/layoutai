@@ -24,8 +24,9 @@ services:
       QUEUE_CONNECTION: redis
       CACHE_STORE: redis
       SESSION_DRIVER: redis
-      FILESYSTEM_DISK: local
+      FILESYSTEM_DISK: public
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
       CLOUDFLARE_ACCOUNT_ID: ${CLOUDFLARE_ACCOUNT_ID:-}
       CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN:-}
       RUNMYPRINT_ENDPOINT: ${RUNMYPRINT_ENDPOINT:-https://www.runmyprint.com/test/image2.php}
@@ -82,7 +83,7 @@ services:
     image: layoutai/app:latest
     container_name: layoutai-worker
     working_dir: /var/www/html
-    command: ["php", "artisan", "queue:work", "--queue=high,crawl,ai,image,render,reporting,default", "--sleep=2", "--tries=3"]
+    command: ["php", "artisan", "queue:work", "--queue=high,crawl,ai,image,render,reporting,default", "--sleep=2", "--tries=3", "--timeout=900", "--memory=512"]
     volumes:
       - ./app:/var/www/html
     environment:
@@ -99,7 +100,9 @@ services:
       QUEUE_CONNECTION: redis
       CACHE_STORE: redis
       SESSION_DRIVER: redis
+      FILESYSTEM_DISK: public
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
       CLOUDFLARE_ACCOUNT_ID: ${CLOUDFLARE_ACCOUNT_ID:-}
       CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN:-}
       RUNMYPRINT_ENDPOINT: ${RUNMYPRINT_ENDPOINT:-https://www.runmyprint.com/test/image2.php}

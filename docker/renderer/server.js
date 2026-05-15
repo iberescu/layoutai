@@ -29,6 +29,10 @@ app.post('/render', async (req, res) => {
         });
         page = await context.newPage();
         await page.setContent(html, { waitUntil: 'networkidle' });
+        // Force the body to the exact ad dimensions so AI-authored HTML that
+        // overflows the container still renders at the correct size.
+        await page.addStyleTag({ content: `html,body{margin:0;padding:0;overflow:hidden!important;width:${width}px!important;height:${height}px!important;}` });
+        await page.setViewportSize({ width: Number(width), height: Number(height) });
         const buf = await page.screenshot({
             type: format === 'jpg' ? 'jpeg' : 'png',
             quality: format === 'jpg' ? Number(quality) : undefined,
