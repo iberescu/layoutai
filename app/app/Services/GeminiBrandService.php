@@ -53,6 +53,24 @@ PROMPT;
                 'proof_points'        => ['type' => 'array', 'items' => ['type' => 'string']],
                 'recommended_ctas'    => ['type' => 'array', 'items' => ['type' => 'string']],
                 'ad_compliance_risks' => ['type' => 'array', 'items' => ['type' => 'string']],
+                'brand_voice'         => [
+                    'type'       => 'object',
+                    'properties' => [
+                        'tone'           => ['type' => 'string'],
+                        'personality'    => ['type' => 'array', 'items' => ['type' => 'string']],
+                        'words_to_use'   => ['type' => 'array', 'items' => ['type' => 'string']],
+                        'words_to_avoid' => ['type' => 'array', 'items' => ['type' => 'string']],
+                    ],
+                ],
+                'visual_identity'     => [
+                    'type'       => 'object',
+                    'properties' => [
+                        'primary_color'    => ['type' => 'string'],
+                        'secondary_color'  => ['type' => 'string'],
+                        'accent_color'     => ['type' => 'string'],
+                        'logo_usage_notes' => ['type' => 'string'],
+                    ],
+                ],
             ],
             'required' => ['company_name', 'industry'],
         ];

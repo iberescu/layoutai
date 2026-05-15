@@ -52,9 +52,35 @@ REQUIREMENTS:
   fake endorsements or unsupported medical/financial claims.
 PROMPT;
 
-        $schema = ['type' => 'array', 'items' => ['type' => 'object']];
+        $schema = [
+            'type'  => 'array',
+            'items' => [
+                'type'       => 'object',
+                'properties' => [
+                    'concept'          => ['type' => 'string'],
+                    'ad_type'          => ['type' => 'string'],
+                    'size'             => [
+                        'type'       => 'object',
+                        'properties' => [
+                            'width'  => ['type' => 'integer'],
+                            'height' => ['type' => 'integer'],
+                        ],
+                        'required' => ['width', 'height'],
+                    ],
+                    'headline'         => ['type' => 'string'],
+                    'subheadline'      => ['type' => 'string'],
+                    'body'             => ['type' => 'string'],
+                    'cta'              => ['type' => 'string'],
+                    'visual_direction' => ['type' => 'string'],
+                    'image_prompt'     => ['type' => 'string'],
+                    'layout_type'      => ['type' => 'string'],
+                ],
+                'required' => ['concept', 'ad_type', 'size', 'headline', 'cta', 'image_prompt', 'layout_type'],
+            ],
+        ];
         $result = $this->gemini->generateJson($prompt, $schema);
-        if (! $result) {
+        if (! $result || ! is_array($result) || empty($result[0]) || ! isset($result[0]['headline'])) {
+            \Illuminate\Support\Facades\Log::info('GeminiAdService falling back to stub concepts');
             $result = $this->stubConcepts($brand, $count, $events);
         }
         return $result;

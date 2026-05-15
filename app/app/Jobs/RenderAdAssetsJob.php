@@ -15,6 +15,9 @@ class RenderAdAssetsJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
+    public int $timeout = 600;
+    public int $tries   = 2;
+
     public function __construct(public int $onboardingSessionId)
     {
         $this->onQueue('render');
@@ -25,7 +28,9 @@ class RenderAdAssetsJob implements ShouldQueue
         $session = OnboardingSession::findOrFail($this->onboardingSessionId);
         $session->setStep('render', 'in_progress');
 
-        $variants = AdVariant::whereHas('campaign', fn ($q) => $q->where('brand_profile_id', $session->brand_profile_id))->get();
+        $variants = AdVariant::whereHas('campaign', fn ($q) => $q->where('brand_profile_id', $session->brand_profile_id))
+            ->whereDoesntHave('renders', fn ($q) => $q->where('render_status', 'completed'))
+            ->get();
         foreach ($variants as $variant) {
             $renderer->render($variant, 'png');
         }
