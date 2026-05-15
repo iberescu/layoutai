@@ -17,3 +17,4 @@ app/public/storage
 Thumbs.db
 .claude/
 screenshots/
+tmp-cookies.txt

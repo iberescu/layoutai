@@ -30,6 +30,9 @@ class GeminiClient
             'generationConfig' => array_filter([
                 'responseMimeType' => 'application/json',
                 'responseSchema'   => $schema ?: null,
+                // Disable Flash's "thinking" pre-pass — saves ~50% latency on
+                // templated/structured output where extra reasoning doesn't help.
+                'thinkingConfig'   => ['thinkingBudget' => 0],
             ]),
         ];
 
