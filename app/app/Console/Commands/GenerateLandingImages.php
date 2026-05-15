@@ -68,6 +68,26 @@ class GenerateLandingImages extends Command
             'aspect' => '4:5',
             'prompt' => 'Portrait display ad creative for a fashion brand. Soft cream-to-blush gradient background. A model silhouette in the lower right. Bold white serif headline "Crafted with care." upper-left. White "Discover" pill CTA mid-left. High-fashion editorial styling. No extra text, no watermarks.',
         ],
+        [
+            'slug' => 'daily-weather',
+            'aspect' => '4:3',
+            'prompt' => 'Editorial photograph: a rainy day in a European old-town square (cobblestones, soft umbrellas, warm cafe windows glowing). Moody cinematic blue palette. No people in focus, no text, no watermarks. Magazine quality.',
+        ],
+        [
+            'slug' => 'daily-seasonal',
+            'aspect' => '4:3',
+            'prompt' => 'Editorial photograph of a sunlit modern office at golden hour, calendar showing end-of-quarter, sleek laptop with charts on a clean wooden desk, soft bokeh. Purple-tinted color grade. No text, no watermarks. Magazine quality.',
+        ],
+        [
+            'slug' => 'daily-holiday',
+            'aspect' => '4:3',
+            'prompt' => 'Editorial photograph: a luxurious bouquet of pink peonies and ranunculus on a marble surface, soft natural daylight from the left. Magazine-grade Mother\'s Day mood. Pink and cream palette. No text, no watermarks.',
+        ],
+        [
+            'slug' => 'daily-local',
+            'aspect' => '4:3',
+            'prompt' => 'Editorial photograph: a runner sprinting across a bridge at sunrise, mist rising, modern city skyline in the background. Athletic energy, cinematic blue and emerald palette. No text, no watermarks. Magazine quality.',
+        ],
     ];
 
     public function handle(): int
