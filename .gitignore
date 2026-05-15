@@ -16,3 +16,4 @@ app/public/storage
 .DS_Store
 Thumbs.db
 .claude/
+screenshots/
