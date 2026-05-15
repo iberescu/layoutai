@@ -25,9 +25,8 @@
 <body class="bg-bgmain text-ink font-sans antialiased min-h-screen flex">
 
     <aside class="w-64 bg-surface border-r border-line min-h-screen p-6 hidden md:block">
-        <a href="{{ route('dashboard') }}" class="flex items-center gap-2 mb-10">
-            <span class="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent"></span>
-            <span class="font-extrabold text-lg tracking-tight">Layout.ai</span>
+        <a href="{{ route('dashboard') }}" class="flex items-center mb-10">
+            <img src="{{ asset('img/logo.png') }}" alt="Layout.ai — Sell more" class="h-9 w-auto">
         </a>
         <nav class="space-y-1 text-sm">
             @php
