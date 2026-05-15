@@ -217,23 +217,23 @@
         <h2 class="text-4xl md:text-5xl font-bold tracking-tight">Always-fresh ads from public moments.</h2>
         <p class="text-muted mt-3 max-w-2xl mx-auto">Ads triggered by tasteful, relevant news, events, holidays, weather, and seasonal trends — never tragedies, politics, or sensitive topics.</p>
     </div>
-    <div class="grid md:grid-cols-2 gap-5">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-5">
         @foreach([
-            ['Weather',  'Rainy week in Bucharest',        'Coffee shop: Warm up with fresh roasted coffee.',  '#0EA5E9', 'daily-weather.jpg'],
-            ['Seasonal', 'End of quarter',                 'SaaS: Close the quarter with cleaner reporting.',  '#7C3AED', 'daily-seasonal.jpg'],
-            ['Holiday',  "Mother's Day season",            'Florist: Send a premium bouquet before the rush.', '#EC4899', 'daily-holiday.jpg'],
-            ['Local',    'Marathon weekend',               'Gym: Train smarter all year, not just race week.',  '#10B981', 'daily-local.jpg'],
+            ['Weather',  'Rainy week in Bucharest',  'Coffee shop',          '#0EA5E9', 'daily-weather.jpg'],
+            ['Seasonal', 'End of quarter',           'SaaS analytics',       '#7C3AED', 'daily-seasonal.jpg'],
+            ['Holiday',  "Mother's Day season",      'Premium florist',      '#EC4899', 'daily-holiday.jpg'],
+            ['Local',    'Marathon weekend',         'Athletic gym',          '#10B981', 'daily-local.jpg'],
         ] as $row)
-            <div class="group relative overflow-hidden bg-surface border border-line rounded-2xl hover:shadow-xl transition">
-                <div class="relative aspect-[4/3] overflow-hidden">
-                    <img src="{{ asset('storage/landing/' . $row[4]) }}" alt="{{ $row[1] }}" loading="lazy"
+            <div class="group flex flex-col bg-surface border border-line rounded-2xl overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition">
+                <div class="relative aspect-square overflow-hidden">
+                    <img src="{{ asset('storage/landing/' . $row[4]) }}" alt="{{ $row[0] }} — {{ $row[2] }} ad" loading="lazy"
                          class="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500">
-                    <div class="absolute inset-0 bg-gradient-to-t from-ink/75 via-ink/15 to-transparent"></div>
-                    <span class="absolute top-4 left-4 px-2.5 py-1 text-xs font-semibold rounded-md text-white shadow-md" style="background: {{ $row[3] }}">{{ $row[0] }}</span>
+                    <span class="absolute top-2.5 left-2.5 px-2 py-0.5 text-[10px] font-semibold rounded-md text-white shadow-md tracking-wide uppercase" style="background: {{ $row[3] }}">{{ $row[0] }}</span>
                 </div>
-                <div class="p-5">
-                    <p class="font-semibold mb-1">{{ $row[1] }}</p>
-                    <p class="text-sm text-muted">→ {{ $row[2] }}</p>
+                <div class="p-4">
+                    <p class="text-xs text-muted uppercase tracking-wide font-medium">Trigger</p>
+                    <p class="font-semibold text-sm mt-0.5 mb-2 leading-snug">{{ $row[1] }}</p>
+                    <p class="text-xs text-muted">Ad for <span class="text-ink font-medium">{{ $row[2] }}</span></p>
                 </div>
             </div>
         @endforeach

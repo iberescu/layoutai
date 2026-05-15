@@ -70,23 +70,23 @@ class GenerateLandingImages extends Command
         ],
         [
             'slug' => 'daily-weather',
-            'aspect' => '4:3',
-            'prompt' => 'Editorial photograph: a rainy day in a European old-town square (cobblestones, soft umbrellas, warm cafe windows glowing). Moody cinematic blue palette. No people in focus, no text, no watermarks. Magazine quality.',
+            'aspect' => '1:1',
+            'prompt' => 'Square display ad creative for a specialty coffee shop called "Roasted Daily". Cozy steaming latte in a glossy ceramic mug photographed top-down on a wooden counter, with a soft rainy-window blur in the upper background. Warm amber to deep brown color grade. Bold cream sans-serif headline "WARM UP" in the upper portion. Small white "Order today" pill CTA in the lower right. Premium ad-agency styling. No watermarks, no garbled text — only the words "WARM UP" and "Order today" should appear.',
         ],
         [
             'slug' => 'daily-seasonal',
-            'aspect' => '4:3',
-            'prompt' => 'Editorial photograph of a sunlit modern office at golden hour, calendar showing end-of-quarter, sleek laptop with charts on a clean wooden desk, soft bokeh. Purple-tinted color grade. No text, no watermarks. Magazine quality.',
+            'aspect' => '1:1',
+            'prompt' => 'Square display ad creative for a B2B SaaS analytics product called "ChartPro". A glossy 3D dashboard panel with a clean rising line chart and KPI cards floats on a deep purple to indigo gradient background. Bold white sans-serif headline "CLOSE THE QUARTER" upper-left. Small white "See demo" pill CTA lower-right. Crisp ad-agency quality. No watermarks, no garbled text — only the words "CLOSE THE QUARTER" and "See demo" should appear.',
         ],
         [
             'slug' => 'daily-holiday',
-            'aspect' => '4:3',
-            'prompt' => 'Editorial photograph: a luxurious bouquet of pink peonies and ranunculus on a marble surface, soft natural daylight from the left. Magazine-grade Mother\'s Day mood. Pink and cream palette. No text, no watermarks.',
+            'aspect' => '1:1',
+            'prompt' => 'Square display ad creative for a premium florist called "Bloom & Co". A lush bouquet of pink peonies and ranunculus arranged off-center against a soft cream-to-blush gradient background. Elegant white serif headline "FOR MOM" upper-right. Small white "Send today" pill CTA lower-left. Editorial Mother\'s Day mood, golden-hour light. No watermarks, no garbled text — only the words "FOR MOM" and "Send today" should appear.',
         ],
         [
             'slug' => 'daily-local',
-            'aspect' => '4:3',
-            'prompt' => 'Editorial photograph: a runner sprinting across a bridge at sunrise, mist rising, modern city skyline in the background. Athletic energy, cinematic blue and emerald palette. No text, no watermarks. Magazine quality.',
+            'aspect' => '1:1',
+            'prompt' => 'Square display ad creative for an athletic gym brand called "Pace Club". A runner mid-stride photographed with motion blur, cinematic golden-hour bridge background. Bold emerald-green to teal color grade. Bold white condensed sans-serif headline "TRAIN SMARTER" in the lower portion. Small white "Join now" pill CTA upper-right. Energetic premium sportswear styling. No watermarks, no garbled text — only the words "TRAIN SMARTER" and "Join now" should appear.',
         ],
     ];
 
