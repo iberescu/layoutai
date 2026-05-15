@@ -187,6 +187,57 @@ Validation results:
 - `GET /dashboard/settings` shows brand + workspace info.
 - `GET /healthz` returns `{"ok":true,...}`.
 
+## Feedback round 1 (post initial commit)
+
+Implemented in response to user feedback:
+
+1. **Landing page redesigned** (`pages/create/index.blade.php`):
+   - Sticky top promo banner (`$500 in free ad credits`) with gradient.
+   - Larger hero with gradient-clip headline, live-pulse status chip, social proof.
+   - Big floating "$500" promo card with three perk checkmarks and primary CTA.
+   - "How it works" cards with bespoke SVG icons (globe/sparkles/grid/beaker/trophy).
+   - Dark `Every display ad size covered` section with all 10 IAB sizes.
+   - Daily-ads grid with colored category chips.
+   - FAQ accordion swapped from `x-collapse` to `x-show + x-transition` to remove Alpine plugin dependency.
+   - Final "Ready to generate your first 30 ads?" CTA card.
+
+2. **Ad assembly now done by Gemini Flash** (`Services/GeminiHtmlAdService.php`):
+   - New service replaces `AdTemplateService` for the templates step.
+   - Prompts Gemini with the variant copy + AI image URL + brand colors + layout hint
+     and asks for a strict-JSON `{html, css}` response with a sanitisation pass that
+     strips `<script>` tags and clamps outer dimensions.
+   - Falls back to `AdTemplateService` if Gemini fails or returns no HTML.
+
+3. **Pipeline robustness fixes from validation**:
+   - `GenerateAdTemplatesJob` / `GenerateAdImagesJob` / `RenderAdAssetsJob` all set
+     `public int $timeout = 600`-900 and skip variants the previous attempt finished
+     (idempotent retry).
+   - Worker `--timeout=900 --memory=512` in `docker-compose.yml`.
+   - `GeminiBrandService` and `GeminiAdService` schemas now include explicit
+     `properties` so structured-output mode returns populated objects (was returning
+     `{}` per item, leaving variant headlines NULL).
+   - `GEMINI_MODEL` default updated from `gemini-2.0-flash` (no longer available to
+     new users) to `gemini-2.5-flash`.
+   - Cloudflare `account_id` auto-resolution: now provisioned from the user's account
+     via the API. Real Cloudflare crawl pulls live HTML from stripe.com / apple.com.
+   - Renderer (`server.js`) now adds a force-clip style tag + viewport reset before
+     screenshotting so AI-authored HTML that overflows the ad container still
+     produces an exact-size image.
+
+4. **Real-API end-to-end test (stripe.com)**:
+   - Cloudflare crawl on `https://www.stripe.com` returned populated content.
+   - Gemini 2.5 Flash brand summary: company=`Stripe`, industry=`Fintech`,
+     description correctly identifies financial infrastructure platform.
+   - Gemini concepts produced 30 brand+event variants with copy like
+     "Build with the Best. Scale with Stripe." and "Automate Your Finance. Focus on Growth."
+   - runmyprint generated 30 ad backgrounds.
+   - Gemini wrote 30 unique HTML documents (~1.2-1.5 KB each) that embed the AI image,
+     headline, sub, and CTA button styled in the Stripe palette.
+   - Playwright renders all 30 ads at exact IAB sizes.
+
+5. **API keys** were placed in `.env` and `app/.env` (both gitignored) and verified
+   to be picked up by the container env. Keys are NOT committed.
+
 ## Known follow-ups (out of scope for this implementation)
 
 - Replace Tailwind Play CDN with a Vite build for production CSS purging.
