@@ -1,0 +1,11 @@
+{
+  "name": "layoutai-renderer",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "server.js",
+  "dependencies": {
+    "express": "^4.21.1",
+    "playwright": "1.48.0"
+  }
+}

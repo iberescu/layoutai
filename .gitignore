@@ -1,0 +1,18 @@
+# Local artifacts
+.env
+app/.env
+app/storage/*.key
+app/storage/app/public/generated/
+app/storage/framework/cache/
+app/storage/framework/sessions/
+app/storage/framework/testing/
+app/storage/framework/views/
+app/storage/logs/
+app/bootstrap/cache/*.php
+!app/bootstrap/cache/.gitkeep
+app/vendor/
+app/node_modules/
+app/public/storage
+.DS_Store
+Thumbs.db
+.claude/
