@@ -81,9 +81,11 @@ services:
       context: .
       dockerfile: docker/app/Dockerfile
     image: layoutai/app:latest
-    container_name: layoutai-worker
+    # container_name omitted so docker compose can scale this service.
     working_dir: /var/www/html
-    command: ["php", "artisan", "queue:work", "--queue=high,crawl,ai,image,render,reporting,default", "--sleep=2", "--tries=3", "--timeout=900", "--memory=512"]
+    command: ["php", "artisan", "queue:work", "--queue=high,crawl,render,image,ai,reporting,default", "--sleep=1", "--tries=3", "--timeout=300", "--memory=512"]
+    deploy:
+      replicas: 6
     volumes:
       - ./app:/var/www/html
     environment:

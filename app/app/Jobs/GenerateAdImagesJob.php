@@ -4,38 +4,41 @@ namespace App\Jobs;
 
 use App\Models\AdVariant;
 use App\Models\OnboardingSession;
-use App\Services\AdImageGenerationService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 
+/**
+ * Fans out per-variant GenerateAdImageJob. Each variant's image is
+ * fetched from runmyprint in parallel by workers.
+ */
 class GenerateAdImagesJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public int $timeout = 600;
+    public int $timeout = 60;
     public int $tries   = 2;
 
     public function __construct(public int $onboardingSessionId)
     {
-        $this->onQueue('image');
+        $this->onQueue('ai');
     }
 
-    public function handle(AdImageGenerationService $images): void
+    public function handle(): void
     {
         $session = OnboardingSession::findOrFail($this->onboardingSessionId);
         $session->setStep('images', 'in_progress');
 
-        $variants = AdVariant::whereHas('campaign', fn ($q) => $q->where('brand_profile_id', $session->brand_profile_id))
-            ->whereDoesntHave('image')   // skip variants the previous attempt finished
-            ->get();
-        foreach ($variants as $variant) {
-            $prompt = $variant->meta['image_prompt'] ?? 'modern editorial product photograph, premium commercial style, no text, no logo, no watermark';
-            $images->generateForVariant($variant, $prompt);
+        $ids = AdVariant::whereHas('campaign', fn ($q) => $q->where('brand_profile_id', $session->brand_profile_id))
+            ->whereDoesntHave('image')
+            ->pluck('id');
+
+        foreach ($ids as $id) {
+            GenerateAdImageJob::dispatch($id);
         }
 
-        $session->setStep('images', 'completed', ['count' => $variants->count()]);
+        $session->setStep('images', 'completed', ['count' => $ids->count()]);
     }
 }
