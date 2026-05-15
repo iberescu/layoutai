@@ -73,7 +73,7 @@
                                  class="absolute inset-0 w-full h-full object-cover">
                             <div class="absolute inset-0 bg-gradient-to-t from-ink/70 via-ink/10 to-transparent"></div>
                             <div class="absolute inset-0 p-3 flex flex-col justify-end text-white">
-                                <p class="font-bold text-xs leading-tight drop-shadow">{{ $s['headline'] }}</p>
+                                <!--<p class="font-bold text-xs leading-tight drop-shadow">{{ $s['headline'] }}</p>-->
                                 <span class="inline-block w-fit mt-1.5 px-2 py-0.5 bg-white/95 text-ink rounded-full text-[10px] font-semibold">{{ $s['cta'] }}</span>
                             </div>
                         </div>
@@ -163,6 +163,8 @@
     </div>
 </section>
 
+
+<!--
 {{-- Examples --}}
 <section id="examples" class="bg-ink text-white py-20 my-10">
     <div class="max-w-7xl mx-auto px-6">
@@ -204,6 +206,9 @@
         </div>
     </div>
 </section>
+-->
+
+
 
 {{-- Daily ads --}}
 <section id="daily" class="max-w-7xl mx-auto px-6 py-20">
