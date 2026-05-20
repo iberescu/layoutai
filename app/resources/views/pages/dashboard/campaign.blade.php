@@ -71,8 +71,12 @@
     <button class="rounded-xl bg-primary text-white px-4 py-2 text-sm">Filter</button>
 </form>
 
-<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 items-start">
-    @foreach($variants as $variant)
+{{-- Column-based masonry: same approach as /preview. Each tile preserves
+     its true aspect ratio + the per-ad score badge floats top-right.
+     Tiles pack top-to-bottom inside each column — no row-stretching
+     whitespace between a leaderboard and a skyscraper in the same row. --}}
+<div class="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4 [&_.tile]:mb-4">
+    @foreach($variants as $i => $variant)
         @php
             $score = $variant->creative_score !== null ? (float) $variant->creative_score : null;
             // Color-code the score badge by quartile.
@@ -84,7 +88,9 @@
                 default         => '#94A3B8', // muted — bottom quartile
             };
         @endphp
-        <div class="bg-surface border border-line rounded-2xl overflow-hidden relative" data-variant-id="{{ $variant->id }}" data-ad-w="{{ $variant->size_width }}" data-ad-h="{{ $variant->size_height }}">
+        <div class="tile group relative break-inside-avoid bg-surface border border-line rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
+             style="animation: tileIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; animation-delay: {{ min($i * 28, 600) }}ms;"
+             data-variant-id="{{ $variant->id }}" data-ad-w="{{ $variant->size_width }}" data-ad-h="{{ $variant->size_height }}">
             @if($score !== null)
                 {{-- Score badge overlay, top-right of the ad area --}}
                 <div class="absolute top-2 right-2 z-10 inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-ink/85 backdrop-blur text-white shadow-sm">
@@ -117,15 +123,22 @@
                     </div>
                 @endif
             </div>
-            <div class="p-3 text-xs flex items-center justify-between gap-2">
-                <span class="text-muted" style="font-variant-numeric: tabular-nums;">{{ $variant->size_width }}×{{ $variant->size_height }}</span>
-                <span class="px-1.5 py-0.5 rounded bg-bgmain text-muted">{{ str_replace('_',' ',$variant->status) }}</span>
+            <div class="px-3 py-2.5 text-xs flex items-center justify-between gap-2">
+                <span class="text-muted font-medium" style="font-variant-numeric: tabular-nums;">{{ $variant->size_width }}<span class="text-muted/50 mx-0.5">×</span>{{ $variant->size_height }}</span>
+                <span class="px-1.5 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wide bg-bgmain text-muted">{{ str_replace('_',' ',$variant->status) }}</span>
             </div>
         </div>
     @endforeach
 </div>
 
 <div class="mt-6">{{ $variants->withQueryString()->links() }}</div>
+
+<style>
+    @keyframes tileIn {
+        from { opacity: 0; transform: translateY(12px) scale(0.98); }
+        to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+</style>
 
 <script>
 function scaleAdFrame(tile) {

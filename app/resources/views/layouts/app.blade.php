@@ -22,7 +22,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
-<body class="bg-bgmain text-ink font-sans antialiased h-screen flex overflow-hidden">
+<body class="bg-bgmain text-ink font-sans antialiased h-screen flex overflow-hidden"
+      x-data="{ navOpen: false }"
+      @keydown.escape.window="navOpen = false">
 
 @php
     $user      = auth()->user();
@@ -32,10 +34,29 @@
     $creditDollars = $creditCents / 100;
 @endphp
 
-    <aside class="w-64 bg-surface border-r border-line h-full flex flex-col hidden md:flex shrink-0">
-        <a href="{{ route('dashboard') }}" class="flex items-center px-6 pt-6 pb-3">
-            <img src="{{ asset('img/logo.png') }}" alt="Layout.ai — Sell more" class="h-9 w-auto">
-        </a>
+    {{-- Mobile backdrop: visible only when the nav drawer is open. --}}
+    <div x-show="navOpen" x-transition.opacity
+         @click="navOpen = false"
+         class="fixed inset-0 bg-ink/40 backdrop-blur-sm z-30 md:hidden"
+         aria-hidden="true"></div>
+
+    <aside class="w-64 bg-surface border-r border-line h-full flex flex-col shrink-0
+                  fixed inset-y-0 left-0 z-40 transform transition-transform duration-200
+                  md:static md:translate-x-0 md:flex"
+           :class="navOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'">
+        <div class="flex items-center justify-between px-6 pt-6 pb-3">
+            <a href="{{ route('dashboard') }}" class="flex items-center" @click="navOpen = false">
+                <img src="{{ asset('img/logo.png') }}" alt="Layout.ai — Sell more" class="h-9 w-auto">
+            </a>
+            {{-- Close drawer button — mobile only --}}
+            <button type="button" @click="navOpen = false"
+                    class="md:hidden -mr-2 p-2 rounded-lg text-muted hover:text-ink hover:bg-bgmain transition"
+                    aria-label="Close navigation">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                    <path d="M6 6l12 12M18 6L6 18" stroke-linecap="round"/>
+                </svg>
+            </button>
+        </div>
 
         @if($workspace)
         <div class="mx-3 mt-1 mb-4 px-3 py-3 rounded-xl bg-bgmain border border-line">
@@ -65,6 +86,7 @@
             @foreach($nav as $item)
                 @php $active = request()->routeIs($item['route']); @endphp
                 <a href="{{ route($item['route']) }}"
+                   @click="navOpen = false"
                    class="group flex items-center gap-2.5 px-3 py-2 rounded-lg transition {{ $active ? 'bg-primary/10 text-primary font-semibold' : 'text-muted hover:bg-bgmain hover:text-ink' }}">
                     <span class="w-4 h-4 flex items-center justify-center shrink-0 {{ $active ? 'text-primary' : 'text-muted group-hover:text-ink' }}">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -103,11 +125,22 @@
     </aside>
 
     <div class="flex-1 flex flex-col min-w-0">
-        <header class="h-16 border-b border-line bg-surface flex items-center justify-between px-6">
-            <h1 class="text-lg font-semibold tracking-tight">{{ $heading ?? 'Dashboard' }}</h1>
-            <div class="flex items-center gap-4 text-sm">
+        <header class="h-16 border-b border-line bg-surface flex items-center justify-between px-4 md:px-6 gap-3">
+            <div class="flex items-center gap-3 min-w-0">
+                {{-- Hamburger: opens the sidebar drawer on mobile only --}}
+                <button type="button"
+                        @click="navOpen = true"
+                        class="md:hidden -ml-1 p-2 rounded-lg text-muted hover:text-ink hover:bg-bgmain transition"
+                        aria-label="Open navigation">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                        <path d="M4 7h16M4 12h16M4 17h16" stroke-linecap="round"/>
+                    </svg>
+                </button>
+                <h1 class="text-lg font-semibold tracking-tight truncate">{{ $heading ?? 'Dashboard' }}</h1>
+            </div>
+            <div class="flex items-center gap-4 text-sm shrink-0">
                 @auth
-                    <span class="text-muted hidden sm:inline">{{ auth()->user()->email }}</span>
+                    <span class="text-muted hidden lg:inline truncate max-w-[200px]">{{ auth()->user()->email }}</span>
                     <form method="POST" action="{{ route('logout') }}">@csrf
                         <button class="text-muted hover:text-ink transition">Log out</button>
                     </form>

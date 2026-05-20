@@ -72,21 +72,36 @@
     </div>
     @endif
 
-    {{-- Asymmetric grid: wide banners span more columns, skyscrapers span two rows, squares fit naturally.
-         items-start prevents short banners from stretching to fill taller rows. --}}
-    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 lg:gap-5 items-start" style="grid-auto-flow: dense;">
-        @foreach($variants as $variant)
-            @php
-                $aspect = $variant->size_height > 0 ? $variant->size_width / $variant->size_height : 1;
-                $span = match(true) {
-                    $aspect >= 5   => 'md:col-span-2 lg:col-span-3',  // 728×90, 468×60, 320×50
-                    $aspect >= 3   => 'md:col-span-2 lg:col-span-2',  // 970×250, 320×100
-                    $aspect <= 0.5 => 'md:row-span-2 lg:row-span-2',  // 300×600, 160×600
-                    default        => '',                             // 300×250, 336×280, 250×250
-                };
-            @endphp
-            <div class="group bg-surface border border-line rounded-2xl overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all {{ $span }}"
+    {{-- Section header above the mosaic. Adds intention + a serial-number
+         feel so the grid reads like a curated catalog instead of a dump. --}}
+    <div class="flex items-end justify-between mb-5 pb-3 border-b border-line">
+        <div>
+            <p class="text-[11px] uppercase tracking-[0.18em] text-muted font-semibold mb-1" style="font-variant-numeric: tabular-nums;">The collection · No. 01–{{ str_pad($variants->count(), 2, '0', STR_PAD_LEFT) }}</p>
+            <h2 class="text-xl font-bold tracking-tight">Thirty pieces, every IAB size.</h2>
+        </div>
+        <div class="hidden sm:flex items-center gap-3 text-xs text-muted">
+            <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-primary/70"></span>Brand</span>
+            <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-accent/70"></span>Daily</span>
+        </div>
+    </div>
+
+    {{-- Column-based masonry: every tile is laid out at its real aspect
+         ratio inside one of N columns, and tiles flow top-to-bottom inside
+         each column. No row-stretching → no whitespace. Tile width = column
+         width regardless of the ad's native size, so the iframe-scale JS
+         downstream still works unchanged. --}}
+    <div class="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4 lg:gap-5 [&_.tile]:mb-4 lg:[&_.tile]:mb-5">
+        @foreach($variants as $i => $variant)
+            <div class="tile group relative break-inside-avoid bg-surface border border-line rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-line/0 transition-all duration-300"
+                 style="animation: tileIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) both; animation-delay: {{ min($i * 35, 800) }}ms;"
                  data-variant-id="{{ $variant->id }}" data-ad-w="{{ $variant->size_width }}" data-ad-h="{{ $variant->size_height }}">
+
+                {{-- Catalog numeral, top-left. Sits over the tile but
+                     under the live ad — small enough to not interfere. --}}
+                <div class="absolute top-2.5 left-2.5 z-20 px-1.5 py-0.5 rounded-md bg-ink/75 text-white text-[10px] font-bold tabular-nums backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity">
+                    No. {{ str_pad($i + 1, 2, '0', STR_PAD_LEFT) }}
+                </div>
+
                 <div class="relative bg-bgmain" style="aspect-ratio: {{ $variant->size_width }}/{{ $variant->size_height }};">
                     @if($variant->html)
                         <iframe data-ad-frame
@@ -122,9 +137,9 @@
                         <div class="absolute top-2 right-2 w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin"></div>
                     </div>
                 </div>
-                <div class="p-3 text-xs flex items-center justify-between">
-                    <span class="text-muted" style="font-variant-numeric: tabular-nums;">{{ $variant->size_width }}×{{ $variant->size_height }}</span>
-                    <span class="px-1.5 py-0.5 rounded {{ $variant->source_type === 'event' ? 'bg-accent/10 text-accent' : 'bg-primary/10 text-primary' }}">
+                <div class="px-3 py-2.5 text-xs flex items-center justify-between gap-2">
+                    <span class="text-muted font-medium" style="font-variant-numeric: tabular-nums;">{{ $variant->size_width }}<span class="text-muted/50 mx-0.5">×</span>{{ $variant->size_height }}</span>
+                    <span class="px-1.5 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wide {{ $variant->source_type === 'event' ? 'bg-accent/10 text-accent' : 'bg-primary/10 text-primary' }}">
                         {{ $variant->source_type === 'event' ? 'Daily' : 'Brand' }}
                     </span>
                 </div>
@@ -152,6 +167,12 @@
     @keyframes shimmer {
         0%   { transform: translateX(0); }
         100% { transform: translateX(400%); }
+    }
+    /* Stagger reveal as each tile drops in — keeps motion subtle but signals
+       that the grid is alive and assembling itself. */
+    @keyframes tileIn {
+        from { opacity: 0; transform: translateY(14px) scale(0.98); }
+        to   { opacity: 1; transform: translateY(0) scale(1); }
     }
 </style>
 
