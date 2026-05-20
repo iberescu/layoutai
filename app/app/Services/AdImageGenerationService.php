@@ -17,7 +17,7 @@ class AdImageGenerationService
         $hash  = hash('sha256', $clean);
 
         $existing = AdImage::where('prompt_hash', $hash)->whereNotNull('stored_url')->first();
-        if ($existing) {
+        if ($existing && $this->storedFileExists($existing->stored_url)) {
             $image = $variant->image()->create([
                 'prompt'          => $clean,
                 'prompt_hash'     => $hash,
@@ -29,6 +29,11 @@ class AdImageGenerationService
                 'file_size_bytes' => $existing->file_size_bytes,
             ]);
             return $image;
+        }
+        // Cache hit pointed at a ghost file (e.g. after a volume recreate).
+        // Drop it so we re-fetch fresh.
+        if ($existing) {
+            Log::info("AdImage cache hit but file missing — re-fetching for hash {$hash}");
         }
 
         $endpoint = (string) config('services.runmyprint.endpoint');
@@ -81,6 +86,21 @@ class AdImageGenerationService
         $prompt = strip_tags($prompt);
         $prompt = (string) preg_replace('/\s+/', ' ', $prompt);
         return Str::limit(trim($prompt), 700, '');
+    }
+
+    /**
+     * Map a stored URL back to the disk path and confirm the bytes are
+     * really there. Needed because the worker containers' storage volume
+     * can be recreated between deploys, leaving AdImage cache rows that
+     * point at ghosts.
+     */
+    private function storedFileExists(string $storedUrl): bool
+    {
+        $publicBase = '/storage/';
+        $pos = strpos($storedUrl, $publicBase);
+        if ($pos === false) return false;
+        $relative = substr($storedUrl, $pos + strlen($publicBase));
+        return Storage::disk(config('filesystems.default', 'public'))->exists($relative);
     }
 
     private function fallbackSvg(AdVariant $variant): string
