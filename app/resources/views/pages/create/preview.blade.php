@@ -92,7 +92,7 @@
          downstream still works unchanged. --}}
     <div class="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4 lg:gap-5 [&_.tile]:mb-4 lg:[&_.tile]:mb-5">
         @foreach($variants as $i => $variant)
-            <div class="tile group relative break-inside-avoid bg-surface border border-line rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-line/0 transition-all duration-300"
+            <div class="tile group relative break-inside-avoid bg-surface border border-line overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-line/0 transition-all duration-300"
                  style="animation: tileIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) both; animation-delay: {{ min($i * 35, 800) }}ms;"
                  data-variant-id="{{ $variant->id }}" data-ad-w="{{ $variant->size_width }}" data-ad-h="{{ $variant->size_height }}">
 

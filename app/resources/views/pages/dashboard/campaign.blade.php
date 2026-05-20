@@ -88,7 +88,7 @@
                 default         => '#94A3B8', // muted — bottom quartile
             };
         @endphp
-        <div class="tile group relative break-inside-avoid bg-surface border border-line rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
+        <div class="tile group relative break-inside-avoid bg-surface border border-line overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
              style="animation: tileIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; animation-delay: {{ min($i * 28, 600) }}ms;"
              data-variant-id="{{ $variant->id }}" data-ad-w="{{ $variant->size_width }}" data-ad-h="{{ $variant->size_height }}">
             @if($score !== null)
