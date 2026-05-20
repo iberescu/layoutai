@@ -1,32 +1,30 @@
 """
 layout.ai creative scorer — TRIBE v2 wrapper for Replicate.
 
-Input: a single static image (the rendered ad).
+Input: the ad's text content (headline + subheadline + CTA combined).
 Output: { "score": 0..100, "regions": {...}, "model": "tribev2", "version": "..." }
 
 How it scores
 -------------
 TRIBE v2 (facebook/tribev2, CC BY-NC) predicts fMRI brain responses on the
-fsaverage5 cortical mesh from multimodal stimuli (video + audio + text). It
-does NOT accept static images directly, so we synthesise:
-    * a 2-second still-frame video at 8 fps (16 frames)
-    * 2 seconds of silent audio at 16 kHz
-    * an empty text track
+fsaverage5 cortical mesh from multimodal stimuli. We pass the ad's COPY
+through its text pathway — TRIBE v2 auto-synthesises speech from the text,
+extracts word-level timings, and routes them through Wav2Vec-BERT and
+LLaMA-3.2-3B before mapping onto the cortical mesh.
 
-We pass these through the model, then aggregate activations across
-visual-cortex vertices on the fsaverage5 mesh into a single 0–100 score
-that proxies "predicted visual attention". The aggregation is intentionally
-simple so the formula is easy to inspect & tune downstream.
+We then aggregate the language-network vertices (Broca's, Wernicke's, MTG,
+STG, angular, temporal pole) into a single 0–100 score that proxies
+"predicted engagement with the ad's copy".
 
 Aggregation formula
 -------------------
     score = clip(0, 100,
-        50 + 12 * z(mean(|activation| over visual_cortex_vertices, over time))
+        50 + 12 * z(mean(|activation| over language_network_vertices, over time))
     )
 
-where z(x) is z-scored vs a small reference set baked at warm-up. This
-keeps scores roughly Normal(50, 12) so the UI's quartile colors line up
-with what users expect (top quartile ≥ 75, etc.).
+REF_MEAN / REF_STD will need recalibration after collecting enough real
+scores — initial defaults are conservative and scores will drift toward
+one end of the distribution until then.
 """
 
 import os
@@ -34,50 +32,40 @@ import tempfile
 import pathlib
 
 import numpy as np
-import imageio
-from PIL import Image
 
-from cog import BasePredictor, Input, Path
+from cog import BasePredictor, Input
 
 
-# Visual cortex vertex indices on the fsaverage5 cortical mesh (20,484
-# vertices total, 10,242 per hemisphere). We build the mask at setup()
-# time from FreeSurfer's anatomical labels for fsaverage5, which ship
-# with nibabel as the standard 'aparc.annot' file.
-#
-# The "visual cortex" here is the occipital lobe: pericalcarine (V1),
-# cuneus, lingual, lateraloccipital — these are the structures TRIBE v2's
-# upstream V-JEPA2 backbone produces the strongest, most reliable signal
-# for in response to static visual stimuli.
-VISUAL_CORTEX_LABELS = (
-    "pericalcarine",      # primary visual cortex (V1)
-    "cuneus",             # dorsal occipital
-    "lingual",            # ventral occipital
-    "lateraloccipital",   # lateral occipital (V4 + LO complex)
+# Destrieux atlas labels that make up the canonical language network on the
+# lateral cortical surface. Loaded into vertex indices at setup() time.
+LANGUAGE_LABELS = (
+    b"G_front_inf-Triangul",      # IFG triangularis — Broca's anterior
+    b"G_front_inf-Opercular",     # IFG opercularis  — Broca's posterior
+    b"G_temporal_middle",         # MTG              — semantic / lexical
+    b"G_temporal_inf",            # ITG              — visual word form area neighbour
+    b"G_temp_sup-Lateral",        # STG lateral      — Wernicke region
+    b"G_temp_sup-Plan_tempo",     # planum temporale — speech processing
+    b"G_pariet_inf-Supramar",     # supramarginal    — phonological loop
+    b"G_pariet_inf-Angular",      # angular gyrus    — semantic integration
+    b"S_temporal_sup",            # superior temporal sulcus — speech
+    b"Pole_temporal",             # temporal pole    — high-level semantics
 )
-# Filled in by setup() when nibabel + the fsaverage5 annot file are available.
-# If atlas loading fails (no network, missing file), falls back to an
-# anatomically-derived approximation of occipital-lobe vertex ranges so
-# the math still runs and scores stay rank-stable.
-VISUAL_CORTEX_INDICES_FALLBACK = (
-    list(range(6800, 9500)) +        # LH occipital approx
-    list(range(17000, 19700))        # RH occipital approx
+# Fallback if nilearn / atlas load fails: rough vertex ranges over lateral
+# temporal + inferior frontal cortex on fsaverage5. Keeps scores rank-stable
+# even when the atlas can't be fetched.
+LANGUAGE_INDICES_FALLBACK = (
+    list(range(2600, 4200))   +   # LH inferior frontal + temporal lateral approx
+    list(range(12800, 14400))     # RH mirror
 )
 
-# Reference mean/std for z-scoring. These are filled in on warm-up by passing
-# a small batch of natural images through the model and caching the result.
-# Until the model is loaded we use neutral defaults so mock-runs still produce
-# scores in a reasonable range.
 REF_MEAN = float(os.environ.get("LAYOUT_TRIBE_REF_MEAN", "0.10"))
 REF_STD  = float(os.environ.get("LAYOUT_TRIBE_REF_STD",  "0.04"))
 
 
 class Predictor(BasePredictor):
     def setup(self) -> None:
-        """Load the TRIBE v2 model into memory once per container boot."""
-        # The HF token is provided as a build-time secret. The model card
-        # explains that v2 weights are public (CC BY-NC) so no gating is
-        # strictly required, but we still respect the env var if set.
+        """Load TRIBE v2 + build the language-network vertex mask once per
+        container boot."""
         token = os.environ.get("HUGGINGFACE_TOKEN")
         if token:
             os.environ["HF_TOKEN"] = token
@@ -90,58 +78,39 @@ class Predictor(BasePredictor):
             )
             self.model_loaded = True
         except Exception as e:
-            # If the model can't load (e.g. during cold-start tests on CPU),
-            # we still respond — with a clearly-marked "scoring unavailable"
-            # output rather than throwing. The Laravel client then falls back
-            # to its mock score.
             print(f"[scorer] TRIBE v2 load failed: {e}")
             self.model = None
             self.model_loaded = False
 
-        # Build the visual-cortex vertex mask. Try the proper atlas-driven
-        # path first; fall back to the anatomical approximation.
-        self.visual_indices = self._build_visual_cortex_mask()
-        print(f"[scorer] visual cortex mask: {len(self.visual_indices)} vertices")
+        self.language_indices = self._build_language_mask()
+        print(f"[scorer] language network mask: {len(self.language_indices)} vertices")
 
     @staticmethod
-    def _build_visual_cortex_mask() -> list:
-        """Use nilearn's fsaverage5 + Destrieux atlas to extract the actual
-        occipital lobe vertex indices. Returns the approximation if any
-        step fails (no network, version mismatch, etc.)."""
+    def _build_language_mask() -> list:
+        """Use nilearn's fsaverage5 + Destrieux atlas to extract the
+        canonical language-network vertex indices. Falls back to an
+        anatomical approximation if anything fails."""
         try:
             from nilearn import datasets
-            import numpy as np
-            fs = datasets.fetch_surf_fsaverage("fsaverage5")
             dx = datasets.fetch_atlas_surf_destrieux()
-            # Destrieux labels we care about (English label names that
-            # correspond to occipital / early-visual structures).
-            target_labels = {
-                b"G_oc_temp_med-Lingual",    # lingual gyrus
-                b"S_calcarine",              # calcarine sulcus (V1)
-                b"G_cuneus",                 # cuneus
-                b"G_occipital_middle",       # middle occipital gyrus
-                b"G_occipital_sup",          # superior occipital gyrus
-                b"G_and_S_occipital_inf",    # inferior occipital
-                b"G_oc_temp_lat-fusifor",    # fusiform (object recognition)
-                b"Pole_occipital",           # occipital pole
-            }
-            label_ids = [i for i, name in enumerate(dx["labels"]) if name in target_labels]
+            label_ids = [i for i, name in enumerate(dx["labels"]) if name in LANGUAGE_LABELS]
             lh = np.asarray(dx["map_left"])
             rh = np.asarray(dx["map_right"])
             lh_idx = np.where(np.isin(lh, label_ids))[0]
-            # Right hemisphere indices are offset by len(lh) in the
-            # concatenated fsaverage5 array TRIBE v2 emits.
             rh_idx = np.where(np.isin(rh, label_ids))[0] + len(lh)
             indices = sorted(set(lh_idx.tolist()) | set(rh_idx.tolist()))
             if indices:
                 return indices
         except Exception as e:
             print(f"[scorer] atlas load failed ({e}); using anatomical approximation")
-        return VISUAL_CORTEX_INDICES_FALLBACK
+        return LANGUAGE_INDICES_FALLBACK
 
     def predict(
         self,
-        image: Path = Input(description="Rendered ad PNG/JPEG"),
+        text: str = Input(
+            description="The ad's copy — typically headline + subheadline + CTA "
+                        "joined into one short paragraph (under ~50 words is ideal).",
+        ),
     ) -> dict:
         if not self.model_loaded:
             return {
@@ -151,30 +120,38 @@ class Predictor(BasePredictor):
                 "version": "v2",
             }
 
-        # 1. Synthesise a 2-second still-frame video. TRIBE v2's
-        # get_events_dataframe accepts exactly one modality at a time, so we
-        # pass video only (audio_path / text_path would be an alternative).
+        # 1. Write text to a temp file. TRIBE v2 handles text→speech and
+        # word-level timing extraction internally via gTTS + Wav2Vec-BERT.
+        clean = (text or "").strip()
+        if not clean:
+            return {
+                "score": None,
+                "error": "empty text input",
+                "model": "tribev2",
+                "version": "v2",
+            }
         tmp_dir = pathlib.Path(tempfile.mkdtemp())
-        video_path = tmp_dir / "stim.mp4"
-        self._image_to_video(image, video_path, seconds=2, fps=8)
+        text_path = tmp_dir / "stim.txt"
+        text_path.write_text(clean, encoding="utf-8")
 
         # 2. Build the events dataframe + run prediction.
-        df = self.model.get_events_dataframe(video_path=str(video_path))
+        df = self.model.get_events_dataframe(text_path=str(text_path))
         preds, _segments = self.model.predict(events=df)
         # preds shape: (n_timesteps, n_vertices)
 
-        # 3. Aggregate visual-cortex activations.
-        visual = preds[:, self.visual_indices]
-        magnitude = float(np.mean(np.abs(visual)))
+        # 3. Aggregate language-network activations.
+        language = preds[:, self.language_indices]
+        magnitude = float(np.mean(np.abs(language)))
         z = (magnitude - REF_MEAN) / max(REF_STD, 1e-6)
         score = float(max(0.0, min(100.0, 50.0 + 12.0 * z)))
 
-        # 4. Lightweight per-region breakdown so the UI/research can drill in.
         regions = {
-            "visual_cortex_mean_activation": magnitude,
+            "language_mean_activation": magnitude,
             "z_score": float(z),
             "timesteps": int(preds.shape[0]),
             "vertices": int(preds.shape[1]),
+            "language_vertices_used": len(self.language_indices),
+            "word_count": len(clean.split()),
         }
 
         return {
@@ -183,16 +160,3 @@ class Predictor(BasePredictor):
             "model": "tribev2",
             "version": "v2",
         }
-
-    @staticmethod
-    def _image_to_video(image_path: Path, out_path: pathlib.Path, *, seconds: int, fps: int) -> None:
-        img = Image.open(str(image_path)).convert("RGB")
-        # Pad / resize to a standard 512x512 frame so the video encoder is happy.
-        img.thumbnail((512, 512), Image.LANCZOS)
-        canvas = Image.new("RGB", (512, 512), (0, 0, 0))
-        canvas.paste(img, ((512 - img.width) // 2, (512 - img.height) // 2))
-        frame = np.array(canvas)
-        with imageio.get_writer(str(out_path), fps=fps, codec="libx264", quality=8) as w:
-            for _ in range(seconds * fps):
-                w.append_data(frame)
-

@@ -49,9 +49,9 @@ class CreativeScoringService
 
     private function scoreViaReplicate(AdVariant $variant): ?array
     {
-        $imageUrl = $this->resolveImageUrl($variant);
-        if (! $imageUrl) {
-            Log::info('Creative scoring skipped — no image URL for variant ' . $variant->id);
+        $adText = $this->resolveAdText($variant);
+        if ($adText === null) {
+            Log::info('Creative scoring skipped — no ad text for variant ' . $variant->id);
             return null;
         }
 
@@ -64,14 +64,14 @@ class CreativeScoringService
         // Falls back to the model-prediction endpoint when no deployment.
         if ($deployment !== '') {
             $endpoint = "https://api.replicate.com/v1/deployments/{$deployment}/predictions";
-            $body     = ['input' => ['image' => $imageUrl]];
+            $body     = ['input' => ['text' => $adText]];
         } else {
             $endpoint = 'https://api.replicate.com/v1/predictions';
             $body     = str_contains($modelId, ':')
                 ? ['version' => substr($modelId, strrpos($modelId, ':') + 1),
-                   'input'   => ['image' => $imageUrl]]
+                   'input'   => ['text' => $adText]]
                 : ['version' => $modelId,
-                   'input'   => ['image' => $imageUrl]];
+                   'input'   => ['text' => $adText]];
         }
 
         try {
@@ -156,34 +156,31 @@ class CreativeScoringService
     }
 
     /**
-     * Choose the image we'll feed the scorer. Prefer the runmyprint base
-     * image (already a real photo) since it's a stable URL. If absent, fall
-     * back to a renderer call to rasterize the ad's HTML.
+     * Compose the ad's copy that gets fed to TRIBE v2's text pathway:
+     * headline + subheadline + CTA, joined as a short natural-language
+     * paragraph. TRIBE v2 internally converts this to speech (gTTS) and
+     * extracts word-level timings before running the language pathway,
+     * so punctuation matters for prosody.
      */
-    private function resolveImageUrl(AdVariant $variant): ?string
+    private function resolveAdText(AdVariant $variant): ?string
     {
-        $variant->loadMissing('image');
-        if ($variant->image?->stored_url) {
-            return $this->publicUrl($variant->image->stored_url);
+        $parts = array_filter([
+            $this->endWithPeriod($variant->headline),
+            $this->endWithPeriod($variant->subheadline),
+            $this->endWithPeriod($variant->cta),
+        ], fn ($p) => $p !== '' && $p !== null);
+
+        if (empty($parts)) {
+            return null;
         }
-        // No base image — leave it for now. A future enhancement could
-        // POST the HTML to the renderer here to get a fresh PNG.
-        return null;
+        return implode(' ', $parts);
     }
 
-    /**
-     * Replicate fetches the image from the internet — so any localhost-style
-     * URL we have internally must be rewritten to a publicly reachable one.
-     * In dev that means the user has to expose nginx via a tunnel (ngrok,
-     * cloudflared) and set INTERNAL_PUBLIC_URL accordingly.
-     */
-    private function publicUrl(string $url): string
+    private function endWithPeriod(?string $s): ?string
     {
-        $internal = (string) config('services.renderer.internal_url', '');
-        $public   = (string) config('app.url', 'http://localhost:8088');
-        if ($internal && str_contains($url, $internal)) {
-            return str_replace($internal, $public, $url);
-        }
-        return $url;
+        $s = trim((string) $s);
+        if ($s === '') return null;
+        // Add a trailing period so gTTS gives each segment proper prosody.
+        return preg_match('/[.!?]$/', $s) ? $s : $s . '.';
     }
 }
