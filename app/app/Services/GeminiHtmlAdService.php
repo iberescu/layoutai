@@ -106,15 +106,21 @@ class GeminiHtmlAdService
         $logo      = $logoUrl ?: '';
 
         $items = $variants->map(function (AdVariant $v) {
+            $meta = $v->meta ?? [];
+            $fs   = $meta['font_sizes'] ?? [];
             return [
-                'variant_id'  => $v->id,
-                'width'       => $v->size_width,
-                'height'      => $v->size_height,
-                'headline'    => $v->headline ?? '',
-                'subheadline' => $v->subheadline ?? '',
-                'cta'         => $v->cta ?? 'Learn more',
-                'layout'      => $v->layout_type ?? 'image-background-with-card-overlay',
-                'image_url'   => $v->image?->stored_url ?? '',
+                'variant_id'        => $v->id,
+                'width'             => $v->size_width,
+                'height'            => $v->size_height,
+                'headline'          => $v->headline ?? '',
+                'subheadline'       => $v->subheadline ?? '',
+                'cta'               => $v->cta ?? 'Learn more',
+                'layout'            => $v->layout_type ?? 'image-background-with-card-overlay',
+                'image_url'         => $v->image?->stored_url ?? '',
+                'position'          => $meta['position'] ?? 'bottom',
+                'font_size_headline'    => (int) ($fs['headline']    ?? 0),
+                'font_size_subheadline' => (int) ($fs['subheadline'] ?? 0),
+                'font_size_cta'         => (int) ($fs['cta']         ?? 0),
             ];
         })->values()->all();
 
@@ -142,10 +148,16 @@ For each ad, follow these constraints exactly:
 - Use the supplied headline / subheadline / CTA copy verbatim — do not rewrite.
 - Make the CTA look like a clickable button (rounded, contrasting color).
 - Apply a subtle dark gradient overlay on the image so text stays readable.
-- Scale text to the ad size so headlines fill the available space without overflowing.
+- TYPOGRAPHY: Use the spec's font_size_headline / font_size_subheadline / font_size_cta
+  values (in px) as your starting font-size for those three elements. If any value is 0
+  the spec didn't pin it — pick something reasonable for the ad size. You may shrink
+  by up to 10% to prevent overflow; never grow them.
+- COPY POSITION: place the copy block per spec.position:
+  * "top"    — copy in the top 40% of the ad
+  * "middle" — copy vertically centered
+  * "bottom" — copy in the bottom 40% of the ad
 - For wide leaderboard formats (width >> height) put copy on the left, image on the right.
 - For tall skyscrapers/half-pages (height >> width) stack image on top, copy below.
-- For squares / medium rectangles place copy at the bottom over the image.
 - Absolutely NO text, watermark, or logo INSIDE the image — those are overlay elements.
 - Do NOT output anything outside the top-level JSON object.
 
@@ -174,6 +186,13 @@ PROMPT;
         $bgImage = $imageUrl ?: '';
         $logo    = $logoUrl  ?: '';
 
+        $meta    = $variant->meta ?? [];
+        $fs      = $meta['font_sizes'] ?? [];
+        $fsH     = (int) ($fs['headline']    ?? 0);
+        $fsS     = (int) ($fs['subheadline'] ?? 0);
+        $fsC     = (int) ($fs['cta']         ?? 0);
+        $position = $meta['position'] ?? 'bottom';
+
         return <<<PROMPT
 You are an expert HTML/CSS designer who builds polished, banner-ad-quality
 display ads. Return STRICT JSON: { "html": "<full document>", "css": "" }.
@@ -196,10 +215,17 @@ Constraints (must follow exactly):
 - Layout hint: {$layout}.
 - Make the CTA look like a clickable button (rounded, contrasting color).
 - Apply a subtle dark gradient overlay on the image to keep text readable.
-- Scale text to the ad size so headlines fill the available space without overflowing.
+- TYPOGRAPHY (use as starting font-size in px; you may shrink up to 10% to avoid
+  overflow but never grow them; 0 means unpinned, choose something sensible):
+    headline    = {$fsH}px
+    subheadline = {$fsS}px
+    cta         = {$fsC}px
+- COPY POSITION = "{$position}":
+    * "top"    → copy lives in the top 40% of the ad
+    * "middle" → copy vertically centered
+    * "bottom" → copy lives in the bottom 40% of the ad
 - For wide leaderboard formats ({$w}>{$h} by a lot) put copy on the left, image on the right.
 - For tall skyscrapers/half-pages ({$h}>{$w} by a lot) stack image on top, copy below.
-- For squares/rectangles place copy at the bottom over the image.
 - Absolutely NO text, watermark or logo INSIDE the AI image — those are overlay elements.
 - Do NOT output anything outside the JSON object.
 

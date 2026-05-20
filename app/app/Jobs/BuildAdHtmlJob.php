@@ -47,7 +47,11 @@ class BuildAdHtmlJob implements ShouldQueue
             'css'  => $built['css'] ?? '',
         ]);
 
-        // Immediately enqueue the render so the worker pool keeps moving.
-        RenderAdJob::dispatch($variant->id);
+        // PNG render skipped on critical path — frontend uses the HTML
+        // directly via <iframe srcdoc>. Re-enable when PNG export ships:
+        // RenderAdJob::dispatch($variant->id);
+
+        // Score with TRIBE v2 (or mock) right after the HTML lands.
+        ScoreAdVariantJob::dispatch($variant->id)->delay(now()->addSeconds(2));
     }
 }

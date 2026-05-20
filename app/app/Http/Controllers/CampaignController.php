@@ -15,7 +15,7 @@ class CampaignController extends Controller
 
         $brand = $campaign->brandProfile;
 
-        $query = $campaign->variants()->with('renders');
+        $query = $campaign->variants();
 
         if ($status = $request->string('status')->toString()) {
             $query->where('status', $status);
@@ -25,7 +25,15 @@ class CampaignController extends Controller
             $query->where('size_width', (int) $w)->where('size_height', (int) $h);
         }
 
-        $variants = $query->paginate(24);
+        // Sort: 'score' = highest creative score first (nulls last); else id.
+        $sort = $request->string('sort')->toString();
+        if ($sort === 'score') {
+            $query->orderByRaw('creative_score DESC NULLS LAST')->orderBy('id');
+        } else {
+            $query->orderBy('id');
+        }
+
+        $variants = $query->paginate(24)->appends($request->query());
 
         $counts = $campaign->variants()
             ->selectRaw('status, COUNT(*) AS c')
@@ -33,6 +41,13 @@ class CampaignController extends Controller
             ->pluck('c', 'status')
             ->toArray();
 
-        return view('pages.dashboard.campaign', compact('campaign', 'brand', 'variants', 'counts'));
+        $scoreStats = [
+            'total'  => $campaign->variants()->count(),
+            'scored' => $campaign->variants()->whereNotNull('creative_score')->count(),
+            'avg'    => $campaign->variants()->whereNotNull('creative_score')->avg('creative_score'),
+            'top'    => $campaign->variants()->whereNotNull('creative_score')->max('creative_score'),
+        ];
+
+        return view('pages.dashboard.campaign', compact('campaign', 'brand', 'variants', 'counts', 'scoreStats', 'sort'));
     }
 }

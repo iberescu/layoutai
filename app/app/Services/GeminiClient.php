@@ -13,13 +13,15 @@ class GeminiClient
         return ! empty(config('services.gemini.api_key'));
     }
 
-    public function generateJson(string $prompt, array $schema = []): ?array
+    public function generateJson(string $prompt, array $schema = [], ?string $modelOverride = null): ?array
     {
         if (! $this->isConfigured()) {
             return null;
         }
         $base    = rtrim((string) config('services.gemini.base'), '/');
-        $model   = (string) config('services.gemini.model');
+        $model   = $modelOverride !== null && $modelOverride !== ''
+            ? $modelOverride
+            : (string) config('services.gemini.model');
         $key     = (string) config('services.gemini.api_key');
         $url     = "{$base}/models/{$model}:generateContent?key={$key}";
 
@@ -57,6 +59,9 @@ class GeminiClient
 
     protected function http(): PendingRequest
     {
-        return Http::timeout(60)->retry(2, 1000);
+        // 180s headroom: the combined brand+ads call generates 30 concepts in
+        // one request and routinely runs 30-60s on gemini-3.5-flash. Smaller
+        // calls (brand-only, HTML per-variant) finish in <15s regardless.
+        return Http::timeout(180)->retry(2, 1000);
     }
 }

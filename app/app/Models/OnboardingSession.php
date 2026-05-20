@@ -70,10 +70,11 @@ class OnboardingSession extends Model
 
     public function progressFraction(): float
     {
+        // PNG render dropped from the critical path — frontend reads
+        // AdVariant.html directly. Templates is now the finalizer step.
         $order = [
             'crawl', 'extract_brand', 'summarize_brand',
-            'concepts', 'image_prompts', 'images',
-            'templates', 'render',
+            'concepts', 'image_prompts', 'images', 'templates',
         ];
         $done = 0;
         foreach ($order as $key) {

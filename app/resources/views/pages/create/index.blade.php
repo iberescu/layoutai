@@ -128,40 +128,6 @@
     </div>
 </section>
 
-{{-- How it works --}}
-<section id="how" class="max-w-7xl mx-auto px-6 py-20">
-    <div class="text-center mb-14">
-        <span class="inline-block px-3 py-1 rounded-full bg-accent/10 text-accent text-xs font-semibold tracking-wide uppercase mb-3">The flow</span>
-        <h2 class="text-4xl md:text-5xl font-bold tracking-tight">How Layout.ai builds your ads</h2>
-        <p class="text-muted mt-3 max-w-2xl mx-auto">From a single URL to a tested, winning campaign in minutes.</p>
-    </div>
-    <div class="grid md:grid-cols-5 gap-5">
-        @foreach([
-            ['icon' => 'globe',    'title' => 'Enter site',     'desc' => 'We crawl your website and pull brand signals.'],
-            ['icon' => 'sparkles', 'title' => 'Learn brand',    'desc' => 'Gemini Flash builds a structured brand profile.'],
-            ['icon' => 'grid',     'title' => 'Generate ads',   'desc' => '1,000 variants across copy, layout, and CTAs.'],
-            ['icon' => 'beaker',   'title' => 'Test',           'desc' => 'Small budgets find your best 100, then top 30.'],
-            ['icon' => 'trophy',   'title' => 'Pick winners',   'desc' => 'Top 10 go live across partner inventory.'],
-        ] as $i => $step)
-            <div class="group relative p-6 rounded-2xl border border-line bg-surface hover:shadow-xl hover:-translate-y-1 transition-all">
-                <div class="absolute top-4 right-4 text-xs font-bold text-muted">0{{ $i+1 }}</div>
-                <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-primary to-accent text-white flex items-center justify-center mb-4">
-                    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        @switch($step['icon'])
-                            @case('globe') <circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/> @break
-                            @case('sparkles') <path d="M12 3l1.9 5.6L19.5 10l-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.4z"/> @break
-                            @case('grid') <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/> @break
-                            @case('beaker') <path d="M9 3v4l-5 9a4 4 0 0 0 4 6h8a4 4 0 0 0 4-6l-5-9V3"/><path d="M9 3h6"/> @break
-                            @case('trophy') <path d="M6 9a6 6 0 0 0 12 0V4H6zM4 6h2M18 6h2M12 15v4M9 22h6"/> @break
-                        @endswitch
-                    </svg>
-                </div>
-                <h3 class="font-bold mb-1.5">{{ $step['title'] }}</h3>
-                <p class="text-sm text-muted leading-relaxed">{{ $step['desc'] }}</p>
-            </div>
-        @endforeach
-    </div>
-</section>
 
 
 <!--
@@ -210,12 +176,367 @@
 
 
 
+{{-- Pipeline deep-dive: how the system actually works --}}
+<section id="pipeline" class="relative overflow-hidden bg-ink text-white py-24">
+    {{-- Atmospheric background --}}
+    <div class="absolute inset-0 pointer-events-none opacity-[0.07]" aria-hidden="true"
+         style="background-image:
+            radial-gradient(circle at 18% 22%, #fff 0%, transparent 35%),
+            radial-gradient(circle at 82% 78%, #fff 0%, transparent 40%);"></div>
+    <div class="absolute inset-0 pointer-events-none opacity-50" aria-hidden="true"
+         style="background-image:
+            linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
+            background-size: 64px 64px;"></div>
+
+    <div class="relative max-w-7xl mx-auto px-6">
+        <div class="max-w-3xl mb-16">
+            <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur text-xs font-semibold tracking-wide uppercase mb-4">
+                <span class="w-1.5 h-1.5 rounded-full bg-success animate-pulse"></span>
+                The pipeline
+            </span>
+            <h2 class="text-4xl md:text-5xl font-extrabold tracking-tight leading-tight mb-4">
+                From <span class="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">1,000 ads</span> down to the 10 that actually work.
+            </h2>
+            <p class="text-white/65 text-lg leading-relaxed">
+                We generate at scale, score every creative against a neural model that predicts human attention, then validate the best on real Google Display inventory. Each phase prunes the field — you only ever spend on ads that already cleared two earlier gates.
+            </p>
+        </div>
+
+        {{-- The four phases, alternating left/right --}}
+        <div class="space-y-24">
+
+            {{-- PHASE 1 — Generate --}}
+            <div class="grid lg:grid-cols-12 gap-10 lg:gap-12 items-center">
+                <div class="lg:col-span-5">
+                    <div class="flex items-center gap-3 mb-5">
+                        <span class="text-xs font-bold tracking-[0.18em] uppercase text-primary" style="font-variant-numeric: tabular-nums;">Phase 01</span>
+                        <span class="flex-1 h-px bg-gradient-to-r from-primary/40 to-transparent"></span>
+                    </div>
+                    <h3 class="text-3xl md:text-4xl font-bold tracking-tight mb-4">Generate 1,000+ ads at full brand fidelity.</h3>
+                    <p class="text-white/70 leading-relaxed mb-6">
+                        Gemini drafts copy, layout, and CTAs across every IAB display size — then we layer in <strong class="text-white">daily-event ads</strong> that respond to news, weather, holidays, and local culture. Nothing tasteless: tragedies, politics, and sensitive moments are filtered out before they ever reach the writer.
+                    </p>
+                    <dl class="grid grid-cols-2 gap-x-6 gap-y-4 mt-8 max-w-md">
+                        <div>
+                            <dt class="text-xs uppercase tracking-wide text-white/50 font-semibold mb-1">Creatives per brand</dt>
+                            <dd class="text-3xl font-extrabold tracking-tight" style="font-variant-numeric: tabular-nums;">1,000<span class="text-primary">+</span></dd>
+                        </div>
+                        <div>
+                            <dt class="text-xs uppercase tracking-wide text-white/50 font-semibold mb-1">IAB display sizes</dt>
+                            <dd class="text-3xl font-extrabold tracking-tight" style="font-variant-numeric: tabular-nums;">10</dd>
+                        </div>
+                        <div>
+                            <dt class="text-xs uppercase tracking-wide text-white/50 font-semibold mb-1">Daily refresh</dt>
+                            <dd class="text-lg font-semibold">Event-triggered</dd>
+                        </div>
+                        <div>
+                            <dt class="text-xs uppercase tracking-wide text-white/50 font-semibold mb-1">Compliance</dt>
+                            <dd class="text-lg font-semibold">Pre-filtered</dd>
+                        </div>
+                    </dl>
+                </div>
+                <div class="lg:col-span-7">
+                    {{-- Visual: an 8x4 grid of mini ad squares, most dimmed, some highlighted to evoke the "many variants" idea --}}
+                    <div class="relative rounded-3xl border border-white/10 bg-gradient-to-br from-white/[0.04] to-white/[0.01] p-6 backdrop-blur-sm overflow-hidden">
+                        <div class="absolute top-4 right-4 text-[10px] font-mono tracking-wider uppercase text-white/40">batch.run.001</div>
+                        <div class="grid grid-cols-8 gap-1.5">
+                            @php
+                                $tiles = [];
+                                for ($i = 0; $i < 32; $i++) {
+                                    $tiles[] = [
+                                        'hue'  => [220, 250, 280, 200, 160][$i % 5],
+                                        'rot'  => mt_rand(-2, 2),
+                                        'on'   => in_array($i, [3, 7, 12, 17, 22, 28]),
+                                    ];
+                                }
+                            @endphp
+                            @foreach($tiles as $i => $t)
+                                <div class="aspect-square rounded-md transition-all duration-300 hover:scale-110"
+                                     style="background: hsl({{ $t['hue'] }}, {{ $t['on'] ? 65 : 25 }}%, {{ $t['on'] ? 55 : 22 }}%);
+                                            opacity: {{ $t['on'] ? 1 : 0.55 }};
+                                            transform: rotate({{ $t['rot'] }}deg);
+                                            box-shadow: {{ $t['on'] ? '0 4px 18px hsla('.$t['hue'].',70%,55%,0.45)' : 'none' }};">
+                                </div>
+                            @endforeach
+                        </div>
+                        <div class="flex items-center justify-between mt-5 text-[11px] font-mono text-white/50">
+                            <span class="flex items-center gap-2">
+                                <span class="inline-block w-2 h-2 rounded-sm bg-primary"></span>
+                                32 of 1,024 shown
+                            </span>
+                            <span>brand · event · seasonal</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- PHASE 2 — Score with TRIBE v2 --}}
+            <div class="grid lg:grid-cols-12 gap-10 lg:gap-12 items-center">
+                <div class="lg:col-span-7 order-2 lg:order-1">
+                    {{-- Visual: a "brain scoring" diagram — abstract brain SVG with score readouts --}}
+                    <div class="relative rounded-3xl border border-white/10 bg-gradient-to-br from-white/[0.04] to-white/[0.01] p-6 md:p-8 backdrop-blur-sm overflow-hidden">
+                        <div class="absolute top-4 right-4 text-[10px] font-mono tracking-wider uppercase text-white/40">tribe.v2 · score.engine</div>
+
+                        <div class="grid grid-cols-12 gap-5 items-center">
+                            {{-- Brain SVG with concentric "scanning" rings --}}
+                            <div class="col-span-5 relative">
+                                <svg viewBox="0 0 200 200" class="w-full h-auto">
+                                    <defs>
+                                        <radialGradient id="brainGlow" cx="50%" cy="50%" r="50%">
+                                            <stop offset="0%"  stop-color="#7C3AED" stop-opacity="0.45"/>
+                                            <stop offset="60%" stop-color="#2563EB" stop-opacity="0.1"/>
+                                            <stop offset="100%" stop-color="#2563EB" stop-opacity="0"/>
+                                        </radialGradient>
+                                        <linearGradient id="brainStroke" x1="0" y1="0" x2="1" y2="1">
+                                            <stop offset="0%" stop-color="#60A5FA"/>
+                                            <stop offset="100%" stop-color="#C4B5FD"/>
+                                        </linearGradient>
+                                    </defs>
+                                    <circle cx="100" cy="100" r="92" fill="url(#brainGlow)"/>
+                                    {{-- Scanning rings --}}
+                                    <circle cx="100" cy="100" r="84" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+                                    <circle cx="100" cy="100" r="68" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1" stroke-dasharray="2 4"/>
+                                    <circle cx="100" cy="100" r="52" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+                                    {{-- Stylized brain (two hemispheres of organic curves) --}}
+                                    <g fill="none" stroke="url(#brainStroke)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M100 50 C 70 50 55 70 55 90 C 50 95 48 102 50 110 C 48 120 55 132 70 138 C 78 148 92 152 100 148 L 100 50 Z"/>
+                                        <path d="M100 50 C 130 50 145 70 145 90 C 150 95 152 102 150 110 C 152 120 145 132 130 138 C 122 148 108 152 100 148 L 100 50 Z"/>
+                                        <path d="M70 80 C 78 85 84 92 86 100" opacity="0.7"/>
+                                        <path d="M114 100 C 116 92 122 85 130 80" opacity="0.7"/>
+                                        <path d="M75 115 C 82 118 88 120 95 118" opacity="0.5"/>
+                                        <path d="M105 118 C 112 120 118 118 125 115" opacity="0.5"/>
+                                    </g>
+                                    {{-- Pulse nodes --}}
+                                    <circle cx="78" cy="92" r="2.5" fill="#60A5FA"><animate attributeName="opacity" values="0.3;1;0.3" dur="2s" repeatCount="indefinite"/></circle>
+                                    <circle cx="125" cy="100" r="2.5" fill="#C4B5FD"><animate attributeName="opacity" values="1;0.3;1" dur="2.4s" repeatCount="indefinite"/></circle>
+                                    <circle cx="100" cy="125" r="2.5" fill="#34D399"><animate attributeName="opacity" values="0.3;1;0.3" dur="2.8s" repeatCount="indefinite"/></circle>
+                                </svg>
+                            </div>
+
+                            {{-- Right side: a list of ads with scores --}}
+                            <div class="col-span-7 space-y-2 font-mono text-xs">
+                                @php
+                                    $rows = [
+                                        ['ad-0421', 94, 'pass'],
+                                        ['ad-0188', 89, 'pass'],
+                                        ['ad-0903', 81, 'pass'],
+                                        ['ad-0556', 63, 'mid'],
+                                        ['ad-0042', 47, 'fail'],
+                                        ['ad-0717', 22, 'fail'],
+                                    ];
+                                @endphp
+                                @foreach($rows as $r)
+                                    @php
+                                        $color = $r[2] === 'pass' ? '#34D399' : ($r[2] === 'mid' ? '#F59E0B' : '#64748B');
+                                        $width = $r[1];
+                                    @endphp
+                                    <div class="flex items-center gap-3">
+                                        <span class="w-16 text-white/50">{{ $r[0] }}</span>
+                                        <span class="flex-1 h-1.5 rounded-full bg-white/5 overflow-hidden relative">
+                                            <span class="absolute inset-y-0 left-0 rounded-full" style="width: {{ $width }}%; background: {{ $color }};"></span>
+                                        </span>
+                                        <span class="w-8 text-right font-bold" style="color: {{ $color }};">{{ $r[1] }}</span>
+                                    </div>
+                                @endforeach
+                                <div class="pt-3 mt-3 border-t border-white/10 flex items-center justify-between text-white/40 text-[10px] uppercase tracking-wider">
+                                    <span>predicted neural response</span>
+                                    <span>score / 100</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-5 order-1 lg:order-2">
+                    <div class="flex items-center gap-3 mb-5">
+                        <span class="text-xs font-bold tracking-[0.18em] uppercase text-accent" style="font-variant-numeric: tabular-nums;">Phase 02</span>
+                        <span class="flex-1 h-px bg-gradient-to-r from-accent/40 to-transparent"></span>
+                    </div>
+                    <h3 class="text-3xl md:text-4xl font-bold tracking-tight mb-4">
+                        Score every ad with <span class="bg-gradient-to-r from-accent to-pink-400 bg-clip-text text-transparent">Meta's TRIBE v2</span>.
+                    </h3>
+                    <p class="text-white/70 leading-relaxed mb-4">
+                        TRIBE v2 is Meta AI's neural-response foundation model — a digital twin of how the human brain reacts to visual, auditory, and language stimuli, trained on more than <strong class="text-white">700 volunteers</strong> with a <strong class="text-white">70× resolution</strong> increase over prior approaches.
+                    </p>
+                    <p class="text-white/70 leading-relaxed mb-6">
+                        We score every creative against it. The bottom 70% never sees a live impression — you stop paying for ads the brain wouldn't notice anyway.
+                    </p>
+                    <a href="https://ai.meta.com/blog/tribe-v2-brain-predictive-foundation-model/" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 text-sm font-semibold text-accent hover:text-pink-300 transition-colors group">
+                        Read the TRIBE v2 announcement
+                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" class="transition-transform group-hover:translate-x-0.5"><path d="M7 17L17 7M9 7h8v8"/></svg>
+                    </a>
+                </div>
+            </div>
+
+            {{-- PHASE 3 — Test on Google Display Network --}}
+            <div class="grid lg:grid-cols-12 gap-10 lg:gap-12 items-center">
+                <div class="lg:col-span-5">
+                    <div class="flex items-center gap-3 mb-5">
+                        <span class="text-xs font-bold tracking-[0.18em] uppercase text-success" style="font-variant-numeric: tabular-nums;">Phase 03</span>
+                        <span class="flex-1 h-px bg-gradient-to-r from-success/40 to-transparent"></span>
+                    </div>
+                    <h3 class="text-3xl md:text-4xl font-bold tracking-tight mb-4">Validate the top 30 on real Google Display inventory.</h3>
+                    <p class="text-white/70 leading-relaxed mb-6">
+                        Predicted scores get you 80% of the way there. The remaining 20% is the messy reality of context — placement, time of day, audience overlap. So we ship the highest-scored 30 ads to <strong class="text-white">Google Display Network</strong> on small budgets and measure actual CTR, view-through, and downstream conversions.
+                    </p>
+                    <dl class="grid grid-cols-2 gap-x-6 gap-y-4 mt-8 max-w-md">
+                        <div>
+                            <dt class="text-xs uppercase tracking-wide text-white/50 font-semibold mb-1">Ads tested live</dt>
+                            <dd class="text-3xl font-extrabold tracking-tight" style="font-variant-numeric: tabular-nums;">30</dd>
+                        </div>
+                        <div>
+                            <dt class="text-xs uppercase tracking-wide text-white/50 font-semibold mb-1">Inventory partners</dt>
+                            <dd class="text-3xl font-extrabold tracking-tight">GDN<span class="text-success">+</span></dd>
+                        </div>
+                        <div>
+                            <dt class="text-xs uppercase tracking-wide text-white/50 font-semibold mb-1">Tracked signals</dt>
+                            <dd class="text-sm font-semibold leading-snug">CTR · view-through · post-click conversion</dd>
+                        </div>
+                        <div>
+                            <dt class="text-xs uppercase tracking-wide text-white/50 font-semibold mb-1">Budget per ad</dt>
+                            <dd class="text-lg font-semibold">Capped, equal-weight</dd>
+                        </div>
+                    </dl>
+                </div>
+                <div class="lg:col-span-7">
+                    {{-- Visual: a network of "served impression" dots connected by lines, with a central hub --}}
+                    <div class="relative rounded-3xl border border-white/10 bg-gradient-to-br from-white/[0.04] to-white/[0.01] p-6 backdrop-blur-sm overflow-hidden h-[340px]">
+                        <div class="absolute top-4 right-4 text-[10px] font-mono tracking-wider uppercase text-white/40">live · gdn.broadcast</div>
+                        <svg viewBox="0 0 600 320" class="w-full h-full" preserveAspectRatio="xMidYMid meet">
+                            <defs>
+                                <radialGradient id="hubGlow" cx="50%" cy="50%" r="50%">
+                                    <stop offset="0%" stop-color="#10B981" stop-opacity="0.7"/>
+                                    <stop offset="100%" stop-color="#10B981" stop-opacity="0"/>
+                                </radialGradient>
+                            </defs>
+                            {{-- Connecting arcs from hub to outer nodes --}}
+                            @php
+                                $nodes = [
+                                    [80, 60],   [180, 40],  [300, 30],  [420, 50],  [520, 80],
+                                    [560, 160], [540, 250], [430, 290], [310, 295], [180, 285],
+                                    [80, 260],  [40, 180],  [110, 130], [220, 110], [380, 115],
+                                    [490, 135], [470, 215], [350, 230], [240, 220], [130, 200],
+                                ];
+                            @endphp
+                            @foreach($nodes as $i => $n)
+                                <path d="M300,160 Q{{ ($n[0] + 300) / 2 }},{{ ($n[1] + 160) / 2 - 20 }} {{ $n[0] }},{{ $n[1] }}"
+                                      stroke="rgba(96, 165, 250, {{ 0.08 + ($i % 5) * 0.04 }})" stroke-width="1" fill="none"/>
+                            @endforeach
+                            {{-- Outer nodes --}}
+                            @foreach($nodes as $i => $n)
+                                @php $size = $i % 4 === 0 ? 4 : 2.5; @endphp
+                                <circle cx="{{ $n[0] }}" cy="{{ $n[1] }}" r="{{ $size }}" fill="#60A5FA" opacity="0.7">
+                                    <animate attributeName="opacity" values="0.3;0.9;0.3" dur="{{ 1.6 + ($i % 5) * 0.4 }}s" repeatCount="indefinite" begin="{{ $i * 0.1 }}s"/>
+                                </circle>
+                            @endforeach
+                            {{-- Central hub --}}
+                            <circle cx="300" cy="160" r="60" fill="url(#hubGlow)"/>
+                            <circle cx="300" cy="160" r="22" fill="rgba(16,185,129,0.18)" stroke="#10B981" stroke-width="1.5"/>
+                            <circle cx="300" cy="160" r="6" fill="#10B981"/>
+                            <text x="300" y="200" text-anchor="middle" fill="rgba(255,255,255,0.6)" font-size="10" font-family="ui-monospace, monospace" letter-spacing="1.5">LAYOUT.AI</text>
+                        </svg>
+                        <div class="absolute bottom-4 left-6 right-6 flex items-center justify-between text-[11px] font-mono text-white/50">
+                            <span class="flex items-center gap-2">
+                                <span class="inline-block w-2 h-2 rounded-full bg-success animate-pulse"></span>
+                                Live impressions
+                            </span>
+                            <span style="font-variant-numeric: tabular-nums;">avg 4.2s decision window</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- PHASE 4 — Keep the winners --}}
+            <div class="grid lg:grid-cols-12 gap-10 lg:gap-12 items-center">
+                <div class="lg:col-span-7 order-2 lg:order-1">
+                    {{-- Visual: a winner's "leaderboard" — top 3 ads with podium ranks --}}
+                    <div class="relative rounded-3xl border border-white/10 bg-gradient-to-br from-white/[0.04] to-white/[0.01] p-6 backdrop-blur-sm overflow-hidden">
+                        <div class="absolute top-4 right-4 text-[10px] font-mono tracking-wider uppercase text-white/40">final.cohort · top.10</div>
+                        <div class="space-y-3">
+                            @php
+                                $winners = [
+                                    ['01', 'Scale your SaaS globally',         '300×250', '4.83% CTR', 'gold',   '#F59E0B'],
+                                    ['02', 'The infrastructure for commerce',  '728×90',  '4.21% CTR', 'silver', '#94A3B8'],
+                                    ['03', 'Close the quarter with ease',      '970×250', '3.97% CTR', 'bronze', '#B45309'],
+                                ];
+                            @endphp
+                            @foreach($winners as $w)
+                                <div class="flex items-center gap-4 p-4 rounded-2xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] transition-colors">
+                                    <span class="text-2xl font-extrabold tracking-tighter w-10 shrink-0" style="color: {{ $w[5] }}; font-variant-numeric: tabular-nums;">{{ $w[0] }}</span>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="font-semibold truncate">{{ $w[1] }}</p>
+                                        <p class="text-xs text-white/50 font-mono mt-0.5">{{ $w[2] }} · partner display inventory</p>
+                                    </div>
+                                    <div class="text-right shrink-0">
+                                        <p class="font-bold" style="color: {{ $w[5] }}; font-variant-numeric: tabular-nums;">{{ $w[3] }}</p>
+                                        <p class="text-[10px] uppercase tracking-wider text-white/40 mt-0.5">measured</p>
+                                    </div>
+                                </div>
+                            @endforeach
+                            {{-- The "retired" stack --}}
+                            <div class="mt-4 pt-4 border-t border-white/10 flex items-center justify-between text-xs text-white/40 font-mono">
+                                <span>+ 7 more in winners pool</span>
+                                <span>990 retired · returned to draft</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="lg:col-span-5 order-1 lg:order-2">
+                    <div class="flex items-center gap-3 mb-5">
+                        <span class="text-xs font-bold tracking-[0.18em] uppercase text-warning" style="font-variant-numeric: tabular-nums;">Phase 04</span>
+                        <span class="flex-1 h-px bg-gradient-to-r from-warning/40 to-transparent"></span>
+                    </div>
+                    <h3 class="text-3xl md:text-4xl font-bold tracking-tight mb-4">Keep the 10 ads that earned it. Retire the rest.</h3>
+                    <p class="text-white/70 leading-relaxed mb-6">
+                        After enough impressions, real-world performance ranks every ad on click-through, view-through, and downstream conversion. The top 10 keep running. The daily-event ads cycle continuously as the calendar moves — so the winners pool stays fresh without you ever opening the dashboard.
+                    </p>
+                    <ul class="space-y-2.5 text-sm text-white/75">
+                        @foreach([
+                            'Top-10 cohort serves the bulk of your impression budget',
+                            'Daily-event slots refresh as news, weather, and calendar move',
+                            'Underperformers automatically return to draft for regeneration',
+                        ] as $point)
+                            <li class="flex items-start gap-2.5">
+                                <span class="inline-flex w-4 h-4 rounded-full bg-success/15 text-success items-center justify-center shrink-0 mt-0.5">
+                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5L20 7"/></svg>
+                                </span>
+                                <span>{{ $point }}</span>
+                            </li>
+                        @endforeach
+                    </ul>
+                </div>
+            </div>
+
+        </div>
+
+        {{-- Funnel summary strip at the bottom of the section --}}
+        <div class="mt-20 pt-10 border-t border-white/10">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-px bg-white/10 rounded-2xl overflow-hidden">
+                @foreach([
+                    ['1,024',  'Generated',   'AI-drafted creatives',           '#60A5FA'],
+                    ['307',    'Scored top', 'Above TRIBE v2 attention floor', '#C4B5FD'],
+                    ['30',     'Live tested', 'Served on Google Display',       '#34D399'],
+                    ['10',     'Winners',     'Keep your impressions',          '#FBBF24'],
+                ] as $i => $stat)
+                    <div class="p-6 bg-ink relative group">
+                        <div class="absolute top-4 right-4 text-[10px] font-mono text-white/30">→</div>
+                        <p class="text-4xl md:text-5xl font-extrabold tracking-tight" style="color: {{ $stat[3] }}; font-variant-numeric: tabular-nums;">{{ $stat[0] }}</p>
+                        <p class="text-sm font-semibold text-white mt-1">{{ $stat[1] }}</p>
+                        <p class="text-xs text-white/50 mt-1 leading-relaxed">{{ $stat[2] }}</p>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    </div>
+</section>
+
 {{-- Daily ads --}}
 <section id="daily" class="max-w-7xl mx-auto px-6 py-20">
     <div class="text-center mb-12">
         <span class="inline-block px-3 py-1 rounded-full bg-accent/10 text-accent text-xs font-semibold tracking-wide uppercase mb-3">Daily ads</span>
         <h2 class="text-4xl md:text-5xl font-bold tracking-tight">Always-fresh ads from public moments.</h2>
-        <p class="text-muted mt-3 max-w-2xl mx-auto">Ads triggered by tasteful, relevant news, events, holidays, weather, and seasonal trends — never tragedies, politics, or sensitive topics.</p>
+        <p class="text-muted mt-3 max-w-2xl mx-auto">Triggered by tasteful, relevant news, events, holidays, weather, and seasonal trends — never tragedies, politics, or sensitive topics.</p>
     </div>
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-5">
         @foreach([
@@ -227,13 +548,15 @@
             <div class="group flex flex-col bg-surface border border-line rounded-2xl overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition">
                 <div class="relative aspect-square overflow-hidden">
                     <img src="{{ asset('storage/landing/' . $row[4]) }}" alt="{{ $row[0] }} — {{ $row[2] }} ad" loading="lazy"
-                         class="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500">
-                    <span class="absolute top-2.5 left-2.5 px-2 py-0.5 text-[10px] font-semibold rounded-md text-white shadow-md tracking-wide uppercase" style="background: {{ $row[3] }}">{{ $row[0] }}</span>
+                         class="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-700">
+                    <div class="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-ink/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <span class="absolute top-2.5 left-2.5 inline-flex items-center gap-1.5 px-2 py-0.5 text-[10px] font-semibold rounded-md text-white shadow-sm tracking-wide uppercase backdrop-blur-sm" style="background: {{ $row[3] }}cc">
+                        <span class="w-1 h-1 rounded-full bg-white/90"></span>{{ $row[0] }}
+                    </span>
                 </div>
                 <div class="p-4">
-                    <p class="text-xs text-muted uppercase tracking-wide font-medium">Trigger</p>
-                    <p class="font-semibold text-sm mt-0.5 mb-2 leading-snug">{{ $row[1] }}</p>
-                    <p class="text-xs text-muted">Ad for <span class="text-ink font-medium">{{ $row[2] }}</span></p>
+                    <p class="font-semibold text-sm leading-snug mb-2">{{ $row[1] }}</p>
+                    <p class="text-xs text-muted leading-relaxed">Ad for <span class="text-ink font-medium">{{ $row[2] }}</span></p>
                 </div>
             </div>
         @endforeach
@@ -246,7 +569,7 @@
         <span class="inline-block px-3 py-1 rounded-full bg-accent/10 text-accent text-xs font-semibold tracking-wide uppercase mb-3">FAQ</span>
         <h2 class="text-4xl font-bold tracking-tight">Common questions</h2>
     </div>
-    <div class="space-y-3">
+    <div class="space-y-2.5">
         @foreach([
             ['How is the $500 credit applied?', 'As a Layout.ai promotional credit for campaigns run through Layout.ai partner inventory, including eligible Google Display Network inventory where available.'],
             ['Do I need a credit card to start?', 'No. You can review the generated ads before anything runs.'],
@@ -255,10 +578,16 @@
             ['Do you support product feeds?', 'Yes — CSV upload, XML feed URL, and Google Merchant Center XML at MVP. Shopify and WooCommerce next.'],
             ['When am I billed?', 'Never during the free credit. Paid plans only after you decide to scale.'],
         ] as $i => $row)
-            <div class="border border-line bg-surface rounded-2xl overflow-hidden">
-                <button @click="open = (open === {{ $i }} ? null : {{ $i }})" class="w-full px-5 py-4 flex items-center justify-between text-left">
-                    <span class="font-medium">{{ $row[0] }}</span>
-                    <span class="text-primary text-lg font-bold transition-transform" :class="open === {{ $i }} ? 'rotate-45' : ''">+</span>
+            <div class="border border-line bg-surface rounded-2xl overflow-hidden transition-colors"
+                 :class="open === {{ $i }} ? 'shadow-md' : ''">
+                <button @click="open = (open === {{ $i }} ? null : {{ $i }})" class="w-full px-5 py-4 flex items-center justify-between text-left group">
+                    <span class="font-medium group-hover:text-primary transition-colors">{{ $row[0] }}</span>
+                    {{-- Animated +/− icon: two crossed bars, the vertical one fades out when open --}}
+                    <span class="relative w-5 h-5 shrink-0 ml-4 text-primary">
+                        <span class="absolute inset-x-0 top-1/2 -translate-y-1/2 h-0.5 bg-current"></span>
+                        <span class="absolute inset-y-0 left-1/2 -translate-x-1/2 w-0.5 bg-current transition-all duration-300"
+                              :class="open === {{ $i }} ? 'opacity-0 rotate-90' : 'opacity-100 rotate-0'"></span>
+                    </span>
                 </button>
                 <div x-show="open === {{ $i }}" x-transition class="px-5 pb-4 text-muted text-sm leading-relaxed">{{ $row[1] }}</div>
             </div>
@@ -268,12 +597,42 @@
 
 {{-- Final CTA --}}
 <section class="max-w-7xl mx-auto px-6 pb-24">
-    <div class="bg-surface border border-line rounded-3xl p-10 md:p-14 text-center">
-        <h2 class="text-3xl md:text-4xl font-bold tracking-tight mb-3">Ready to generate your first 30 ads?</h2>
-        <p class="text-muted mb-6 max-w-xl mx-auto">Drop your website URL and we'll build the brand, write the copy, generate the images, and render polished previews — all before you create an account.</p>
-        <a href="#cta" onclick="document.querySelector('#cta button').click(); return false;" class="inline-flex items-center gap-2 bg-ink text-white font-semibold px-7 py-3.5 rounded-2xl">
-            Start free →
-        </a>
+    <div class="relative overflow-hidden bg-surface border border-line rounded-3xl p-8 md:p-12 grid md:grid-cols-12 gap-8 items-center">
+        <div class="absolute -top-24 -left-12 w-64 h-64 rounded-full bg-gradient-to-br from-primary/12 to-transparent blur-3xl pointer-events-none"></div>
+        <div class="absolute -bottom-24 -right-10 w-64 h-64 rounded-full bg-gradient-to-tr from-accent/12 to-transparent blur-3xl pointer-events-none"></div>
+
+        <div class="md:col-span-7 relative">
+            <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-success/10 text-success text-xs font-semibold tracking-wide uppercase mb-4">
+                <span class="w-1.5 h-1.5 rounded-full bg-success animate-pulse"></span> 30 ads in 60 seconds
+            </span>
+            <h2 class="text-3xl md:text-4xl font-extrabold tracking-tight mb-3 leading-tight">Ready to generate your first 30 ads?</h2>
+            <p class="text-muted mb-6 max-w-xl leading-relaxed">Drop your website URL and we'll build the brand, write the copy, generate the images, and render polished previews — all before you create an account.</p>
+            <div class="flex flex-wrap items-center gap-4">
+                <a href="#cta" onclick="document.querySelector('#cta button').click(); return false;" class="group inline-flex items-center gap-2 bg-ink hover:bg-ink/90 text-white font-semibold px-7 py-3.5 rounded-2xl shadow-lg shadow-ink/10 transition-all hover:scale-[1.02]">
+                    Start free
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" class="transition-transform group-hover:translate-x-0.5"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+                </a>
+                <span class="text-sm text-muted">$500 credit · no credit card</span>
+            </div>
+        </div>
+
+        {{-- Stacked mini ad preview, mirroring the hero treatment in miniature --}}
+        <div class="md:col-span-5 relative h-56 hidden md:block" aria-hidden="true">
+            <div class="absolute inset-0 flex items-center justify-center">
+                <div class="relative w-full h-full">
+                    @php $miniSamples = [
+                        ['hero-saas.jpg',    'top-2  left-2  rotate-[-6deg]'],
+                        ['hero-retail.jpg',  'top-8  left-24 rotate-[3deg]'],
+                        ['hero-coffee.jpg',  'top-20 left-44 rotate-[-2deg]'],
+                    ]; @endphp
+                    @foreach($miniSamples as $i => $s)
+                        <div class="absolute w-32 aspect-[4/5] rounded-xl border border-line bg-surface shadow-xl overflow-hidden transition-transform hover:scale-105 hover:rotate-0 {{ $s[1] }}">
+                            <img src="{{ asset('storage/landing/' . $s[0]) }}" alt="" class="absolute inset-0 w-full h-full object-cover">
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        </div>
     </div>
 </section>
 

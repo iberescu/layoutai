@@ -5,11 +5,9 @@ namespace App\Http\Controllers;
 use App\Actions\CreateOnboardingSession;
 use App\Jobs\CrawlWebsiteJob;
 use App\Jobs\ExtractBrandJob;
-use App\Jobs\GenerateAdConceptsJob;
 use App\Jobs\GenerateAdImagePromptsJob;
 use App\Jobs\GenerateAdImagesJob;
 use App\Jobs\GenerateAdTemplatesJob;
-use App\Jobs\RenderAdAssetsJob;
 use App\Jobs\SummarizeBrandWithGeminiJob;
 use App\Models\AdVariant;
 use App\Models\Campaign;
@@ -43,12 +41,14 @@ class OnboardingController extends Controller
         Bus::chain([
             new CrawlWebsiteJob($session->id),
             new ExtractBrandJob($session->id),
+            // Single Gemini call covers brand summary + 30 ad concepts.
             new SummarizeBrandWithGeminiJob($session->id),
-            new GenerateAdConceptsJob($session->id),
             new GenerateAdImagePromptsJob($session->id),
             new GenerateAdImagesJob($session->id),
+            // Finalizer: polls until every variant has HTML built, then
+            // flips the session to preview_ready. PNG render no longer on
+            // the critical path — the frontend renders the HTML directly.
             new GenerateAdTemplatesJob($session->id),
-            new RenderAdAssetsJob($session->id),
         ])->dispatch();
 
         return response()->json([
@@ -72,21 +72,20 @@ class OnboardingController extends Controller
     }
 
     /**
-     * Live list of rendered variants for this onboarding session — used by
-     * the preview page to swap placeholder tiles for the real PNG as soon
-     * as each render lands, instead of waiting for the whole batch.
+     * Live list of variants whose HTML has been built — used by the
+     * preview page to swap placeholder tiles for the live <iframe srcdoc>
+     * as soon as each variant's HTML lands, instead of waiting for the
+     * whole batch. Field name "renders" kept for backward compatibility
+     * with the client poller; payload now carries `html` per variant.
      */
     public function renders(OnboardingSession $session): JsonResponse
     {
         $brandId = $session->brand_profile_id;
         $rows = $brandId
-            ? \DB::table('ad_renders')
-                ->join('ad_variants', 'ad_variants.id', '=', 'ad_renders.ad_variant_id')
-                ->join('campaigns', 'campaigns.id', '=', 'ad_variants.campaign_id')
-                ->where('campaigns.brand_profile_id', $brandId)
-                ->where('ad_renders.render_status', 'completed')
-                ->select('ad_variants.id as variant_id', 'ad_renders.asset_url')
-                ->get()
+            ? AdVariant::whereHas('campaign', fn ($q) => $q->where('brand_profile_id', $brandId))
+                ->whereNotNull('html')
+                ->get(['id', 'html'])
+                ->map(fn ($v) => ['variant_id' => $v->id, 'html' => $v->html])
             : collect();
         return response()->json([
             'status'  => $session->status,

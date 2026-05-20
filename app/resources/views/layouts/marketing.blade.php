@@ -44,7 +44,7 @@
                 <img src="{{ asset('img/logo.png') }}" alt="Layout.ai — Sell more" class="h-9 w-auto">
             </a>
             <nav class="hidden md:flex items-center gap-8 text-sm text-muted">
-                <a href="#how" class="hover:text-ink">How it works</a>
+                <a href="#pipeline" class="hover:text-ink">How it works</a>
                 <a href="#examples" class="hover:text-ink">Examples</a>
                 <a href="#daily" class="hover:text-ink">Daily ads</a>
                 <a href="#faq" class="hover:text-ink">FAQ</a>

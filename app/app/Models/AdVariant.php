@@ -14,10 +14,14 @@ class AdVariant extends Model
         'headline', 'subheadline', 'body', 'cta', 'html', 'css',
         'layout_type', 'status', 'source_type', 'news_event_id',
         'policy_status', 'meta',
+        'creative_score', 'creative_score_meta', 'creative_scored_at',
     ];
 
     protected $casts = [
-        'meta' => 'array',
+        'meta'                => 'array',
+        'creative_score'      => 'decimal:2',
+        'creative_score_meta' => 'array',
+        'creative_scored_at'  => 'datetime',
     ];
 
     public function campaign(): BelongsTo

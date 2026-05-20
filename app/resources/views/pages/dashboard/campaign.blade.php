@@ -2,16 +2,56 @@
 @php $heading = $campaign->name; @endphp
 
 @section('content')
+@php
+    $total  = $scoreStats['total']  ?? 0;
+    $scored = $scoreStats['scored'] ?? 0;
+    $avg    = $scoreStats['avg']    ?? null;
+    $top    = $scoreStats['top']    ?? null;
+    $scoredPct = $total > 0 ? round($scored / $total * 100) : 0;
+@endphp
+
+{{-- Scoring summary band --}}
+<div class="bg-surface border border-line rounded-2xl p-5 mb-5 grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div>
+        <p class="text-xs text-muted uppercase tracking-wide font-semibold">Variants</p>
+        <p class="text-2xl font-bold mt-0.5" style="font-variant-numeric: tabular-nums;">{{ $total }}</p>
+    </div>
+    <div>
+        <p class="text-xs text-muted uppercase tracking-wide font-semibold">Scored by TRIBE v2</p>
+        <p class="text-2xl font-bold mt-0.5" style="font-variant-numeric: tabular-nums;">
+            {{ $scored }}
+            <span class="text-base text-muted font-medium">/ {{ $total }}</span>
+        </p>
+        @if($total > 0)
+            <div class="mt-1 h-1 rounded-full bg-bgmain overflow-hidden">
+                <div class="h-full bg-accent" style="width: {{ $scoredPct }}%;"></div>
+            </div>
+        @endif
+    </div>
+    <div>
+        <p class="text-xs text-muted uppercase tracking-wide font-semibold">Avg score</p>
+        <p class="text-2xl font-bold mt-0.5" style="font-variant-numeric: tabular-nums;">
+            {{ $avg !== null ? number_format($avg, 1) : '—' }}
+        </p>
+    </div>
+    <div>
+        <p class="text-xs text-muted uppercase tracking-wide font-semibold">Top score</p>
+        <p class="text-2xl font-bold mt-0.5" style="font-variant-numeric: tabular-nums; color: {{ $top !== null && $top >= 75 ? '#10B981' : '#0F172A' }};">
+            {{ $top !== null ? number_format($top, 1) : '—' }}
+        </p>
+    </div>
+</div>
+
 <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
     @foreach(['draft' => 'Draft', 'ready' => 'Ready', 'running' => 'Running', 'paused' => 'Paused'] as $key => $label)
         <div class="bg-surface border border-line rounded-xl p-3 text-center">
             <p class="text-xs text-muted">{{ $label }}</p>
-            <p class="text-xl font-bold">{{ $counts[$key] ?? 0 }}</p>
+            <p class="text-xl font-bold" style="font-variant-numeric: tabular-nums;">{{ $counts[$key] ?? 0 }}</p>
         </div>
     @endforeach
 </div>
 
-<form method="GET" class="flex items-center gap-2 mb-4">
+<form method="GET" class="flex flex-wrap items-center gap-2 mb-4">
     <select name="status" class="rounded-xl border-line text-sm">
         <option value="">All statuses</option>
         @foreach(['generated','needs_review','approved','rejected','scheduled','running','winner','archived'] as $s)
@@ -24,15 +64,51 @@
             <option value="{{ $s }}" @selected(request('size') === $s)>{{ $s }}</option>
         @endforeach
     </select>
+    <select name="sort" class="rounded-xl border-line text-sm">
+        <option value="" @selected(($sort ?? '') === '')>Sort: order created</option>
+        <option value="score" @selected(($sort ?? '') === 'score')>Sort: creative score ↓</option>
+    </select>
     <button class="rounded-xl bg-primary text-white px-4 py-2 text-sm">Filter</button>
 </form>
 
-<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 items-start">
     @foreach($variants as $variant)
-        <div class="bg-surface border border-line rounded-2xl overflow-hidden">
-            <div class="relative" style="aspect-ratio: {{ $variant->size_width }}/{{ $variant->size_height }};">
-                @if($variant->renders->first()?->asset_url)
-                    <img src="{{ $variant->renders->first()->asset_url }}" class="w-full h-full object-cover">
+        @php
+            $score = $variant->creative_score !== null ? (float) $variant->creative_score : null;
+            // Color-code the score badge by quartile.
+            $scoreColor = match(true) {
+                $score === null => null,
+                $score >= 75    => '#10B981', // success — top quartile
+                $score >= 50    => '#2563EB', // primary — mid-upper
+                $score >= 25    => '#F59E0B', // warning — mid-lower
+                default         => '#94A3B8', // muted — bottom quartile
+            };
+        @endphp
+        <div class="bg-surface border border-line rounded-2xl overflow-hidden relative" data-variant-id="{{ $variant->id }}" data-ad-w="{{ $variant->size_width }}" data-ad-h="{{ $variant->size_height }}">
+            @if($score !== null)
+                {{-- Score badge overlay, top-right of the ad area --}}
+                <div class="absolute top-2 right-2 z-10 inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-ink/85 backdrop-blur text-white shadow-sm">
+                    <span class="w-1.5 h-1.5 rounded-full" style="background: {{ $scoreColor }};"></span>
+                    <span class="text-xs font-bold" style="font-variant-numeric: tabular-nums;">{{ number_format($score, 0) }}</span>
+                </div>
+            @else
+                <div class="absolute top-2 right-2 z-10 inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-bgmain border border-line text-muted">
+                    <span class="w-1.5 h-1.5 rounded-full bg-muted/50 animate-pulse"></span>
+                    <span class="text-[10px] font-semibold uppercase tracking-wide">Scoring</span>
+                </div>
+            @endif
+
+            <div class="relative bg-bgmain" style="aspect-ratio: {{ $variant->size_width }}/{{ $variant->size_height }};">
+                @if($variant->html)
+                    <iframe data-ad-frame
+                            srcdoc="{{ $variant->html }}"
+                            width="{{ $variant->size_width }}"
+                            height="{{ $variant->size_height }}"
+                            loading="lazy"
+                            sandbox=""
+                            scrolling="no"
+                            class="absolute top-0 left-0 border-0 pointer-events-none"
+                            style="width: {{ $variant->size_width }}px; height: {{ $variant->size_height }}px;"></iframe>
                 @else
                     <div class="absolute inset-0" style="background: linear-gradient(135deg, {{ $brand?->primaryColor() ?? '#2563EB' }}, {{ $brand?->accentColor() ?? '#7C3AED' }});"></div>
                     <div class="absolute inset-0 p-3 text-white flex flex-col justify-end">
@@ -41,8 +117,8 @@
                     </div>
                 @endif
             </div>
-            <div class="p-3 text-xs flex items-center justify-between">
-                <span class="text-muted">{{ $variant->size_width }}×{{ $variant->size_height }}</span>
+            <div class="p-3 text-xs flex items-center justify-between gap-2">
+                <span class="text-muted" style="font-variant-numeric: tabular-nums;">{{ $variant->size_width }}×{{ $variant->size_height }}</span>
                 <span class="px-1.5 py-0.5 rounded bg-bgmain text-muted">{{ str_replace('_',' ',$variant->status) }}</span>
             </div>
         </div>
@@ -50,4 +126,36 @@
 </div>
 
 <div class="mt-6">{{ $variants->withQueryString()->links() }}</div>
+
+<script>
+function scaleAdFrame(tile) {
+    const frame = tile.querySelector('[data-ad-frame]');
+    if (!frame) return;
+    const adW = parseInt(tile.dataset.adW || '0', 10);
+    if (!adW) return;
+    const box = frame.parentElement;
+    const tileW = box ? box.clientWidth : tile.clientWidth;
+    if (!tileW) return;
+    frame.style.transformOrigin = '0 0';
+    frame.style.transform = `scale(${tileW / adW})`;
+}
+function scaleAdFrames() {
+    document.querySelectorAll('[data-variant-id]').forEach(scaleAdFrame);
+}
+function watchAdFrames() {
+    if (typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(entries => {
+        for (const e of entries) {
+            const tile = e.target.closest('[data-variant-id]');
+            if (tile) scaleAdFrame(tile);
+        }
+    });
+    document.querySelectorAll('[data-variant-id] > .relative').forEach(el => ro.observe(el));
+}
+scaleAdFrames();
+requestAnimationFrame(scaleAdFrames);
+window.addEventListener('load', () => { scaleAdFrames(); watchAdFrames(); });
+window.addEventListener('resize', scaleAdFrames);
+watchAdFrames();
+</script>
 @endsection

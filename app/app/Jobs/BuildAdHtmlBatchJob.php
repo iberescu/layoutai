@@ -72,7 +72,14 @@ class BuildAdHtmlBatchJob implements ShouldQueue
                 'html' => $built[$variant->id]['html'],
                 'css'  => $built[$variant->id]['css'] ?? '',
             ]);
-            RenderAdJob::dispatch($variant->id);
+            // PNG render skipped on critical path — frontend uses the HTML
+            // directly via <iframe srcdoc>. Re-enable when PNG export ships:
+            // RenderAdJob::dispatch($variant->id);
+
+            // TRIBE v2 creative scoring (hosted GPU). Staggered so the
+            // remote endpoint doesn't get a thundering herd.
+            ScoreAdVariantJob::dispatch($variant->id)
+                ->delay(now()->addSeconds(2 + ($variant->id % 8)));
         }
 
         // Anything still waiting on its image goes into the next pass.
