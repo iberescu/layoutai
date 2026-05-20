@@ -60,9 +60,16 @@ return [
     // Creative scoring (TRIBE v2 by default, runs on a hosted GPU).
     // provider: 'replicate' | 'mock'   ('mock' = deterministic offline score)
     'creative_scoring' => [
-        'provider'        => env('CREATIVE_SCORING_PROVIDER', 'mock'),
-        'replicate_token' => env('REPLICATE_API_TOKEN'),
-        'replicate_model' => env('REPLICATE_TRIBE_MODEL'), // owner/name:version_hash
+        'provider'             => env('CREATIVE_SCORING_PROVIDER', 'mock'),
+        'replicate_token'      => env('REPLICATE_API_TOKEN'),
+        // Two ways to point at a model on Replicate:
+        //   1. REPLICATE_TRIBE_MODEL=owner/name:version_hash → direct prediction
+        //      on the model (one replica, autoscaled by Replicate's allocator).
+        //   2. REPLICATE_TRIBE_DEPLOYMENT=owner/deployment → uses our deployment,
+        //      which has explicit max_instances control + faster autoscale-up.
+        // Deployment takes precedence when set.
+        'replicate_model'      => env('REPLICATE_TRIBE_MODEL'),
+        'replicate_deployment' => env('REPLICATE_TRIBE_DEPLOYMENT'),
     ],
 
 ];

@@ -40,8 +40,11 @@ class CreativeScoringService
 
     private function replicateReady(): bool
     {
-        return ! empty(config('services.creative_scoring.replicate_token'))
-            && ! empty(config('services.creative_scoring.replicate_model'));
+        if (empty(config('services.creative_scoring.replicate_token'))) {
+            return false;
+        }
+        return ! empty(config('services.creative_scoring.replicate_deployment'))
+            || ! empty(config('services.creative_scoring.replicate_model'));
     }
 
     private function scoreViaReplicate(AdVariant $variant): ?array
@@ -52,22 +55,30 @@ class CreativeScoringService
             return null;
         }
 
-        $token   = (string) config('services.creative_scoring.replicate_token');
-        $modelId = (string) config('services.creative_scoring.replicate_model');
+        $token      = (string) config('services.creative_scoring.replicate_token');
+        $deployment = (string) config('services.creative_scoring.replicate_deployment');
+        $modelId    = (string) config('services.creative_scoring.replicate_model');
 
-        // Replicate accepts `version:` (hash) for owner/model:hash format,
-        // or model name + latest_version for `owner/model`. We support both.
-        $body = str_contains($modelId, ':')
-            ? ['version' => substr($modelId, strrpos($modelId, ':') + 1),
-               'input'   => ['image' => $imageUrl]]
-            : ['version' => $modelId,
-               'input'   => ['image' => $imageUrl]];
+        // Deployments are preferred: they give us explicit max_instances
+        // control so 30 ads from one campaign can fan out across replicas.
+        // Falls back to the model-prediction endpoint when no deployment.
+        if ($deployment !== '') {
+            $endpoint = "https://api.replicate.com/v1/deployments/{$deployment}/predictions";
+            $body     = ['input' => ['image' => $imageUrl]];
+        } else {
+            $endpoint = 'https://api.replicate.com/v1/predictions';
+            $body     = str_contains($modelId, ':')
+                ? ['version' => substr($modelId, strrpos($modelId, ':') + 1),
+                   'input'   => ['image' => $imageUrl]]
+                : ['version' => $modelId,
+                   'input'   => ['image' => $imageUrl]];
+        }
 
         try {
             $start = Http::withToken($token, 'Token')
                 ->acceptJson()
                 ->timeout(30)
-                ->post('https://api.replicate.com/v1/predictions', $body);
+                ->post($endpoint, $body);
 
             if (! $start->successful()) {
                 Log::warning('Replicate start failed: ' . $start->status() . ' ' . $start->body());

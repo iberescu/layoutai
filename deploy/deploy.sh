@@ -117,6 +117,7 @@ RENDERER_URL=http://renderer:3000
 CREATIVE_SCORING_PROVIDER=$(grep -E '^CREATIVE_SCORING_PROVIDER=' .env | cut -d= -f2- | sed 's/^$/mock/')
 REPLICATE_API_TOKEN=$(grep -E '^REPLICATE_API_TOKEN=' .env | cut -d= -f2-)
 REPLICATE_TRIBE_MODEL=$(grep -E '^REPLICATE_TRIBE_MODEL=' .env | cut -d= -f2-)
+REPLICATE_TRIBE_DEPLOYMENT=$(grep -E '^REPLICATE_TRIBE_DEPLOYMENT=' .env | cut -d= -f2-)
 EOF
 # Strip any CRLF carryover from a Windows-edited deploy.sh — Gemini and
 # Replicate both reject API tokens that have a trailing \r.

@@ -66,6 +66,12 @@ class CloudflareCrawler
                 'waitUntil' => 'networkidle2',
                 'timeout'   => 60000,
             ],
+            // Force English content regardless of where the droplet is
+            // hosted — otherwise stripe.com from Frankfurt returns the
+            // German homepage and the brand profile comes out localized.
+            'extraHTTPHeaders' => [
+                'Accept-Language' => 'en-US,en;q=0.9',
+            ],
         ];
         $url = str_replace('{account}', $accountId, $endpoint);
 
@@ -177,8 +183,9 @@ class CloudflareCrawler
             if (count($pages) >= 4) break;
             try {
                 $resp = Http::withHeaders([
-                    'User-Agent' => 'Mozilla/5.0 (compatible; LayoutAIBot/1.0; +https://layout.ai/bot)',
-                    'Accept'     => 'text/html,application/xhtml+xml',
+                    'User-Agent'      => 'Mozilla/5.0 (compatible; LayoutAIBot/1.0; +https://layout.ai/bot)',
+                    'Accept'          => 'text/html,application/xhtml+xml',
+                    'Accept-Language' => 'en-US,en;q=0.9',
                 ])->timeout(20)->get($url);
                 if (! $resp->successful()) {
                     continue;
