@@ -1,0 +1,98 @@
+# Production docker-compose for a single DO Droplet.
+# Variables come from /opt/layoutai/.env on the host (which the deploy script
+# rsyncs over). No source-mount volumes — the app code is baked into the image
+# at build time so the container is self-contained.
+
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.app.prod
+    image: layoutai/app:prod
+    container_name: layoutai-app
+    working_dir: /var/www/html
+    env_file: .env
+    networks: [layoutai]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: layoutai-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    networks: [layoutai]
+    depends_on:
+      - app
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: layoutai-postgres
+    environment:
+      POSTGRES_DB: layoutai
+      POSTGRES_USER: layoutai
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-layoutai}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U layoutai -d layoutai"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [layoutai]
+
+  redis:
+    image: redis:7-alpine
+    container_name: layoutai-redis
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks: [layoutai]
+
+  worker:
+    image: layoutai/app:prod
+    command: ["php", "artisan", "queue:work", "--queue=high,crawl,render,image,ai,reporting,default", "--sleep=1", "--tries=3", "--timeout=300", "--memory=512"]
+    deploy:
+      replicas: 8
+    env_file: .env
+    networks: [layoutai]
+    depends_on:
+      app:
+        condition: service_started
+
+  scheduler:
+    image: layoutai/app:prod
+    container_name: layoutai-scheduler
+    command: ["php", "artisan", "schedule:work"]
+    env_file: .env
+    networks: [layoutai]
+    depends_on:
+      app:
+        condition: service_started
+
+  renderer:
+    build:
+      context: ..
+      dockerfile: docker/renderer/Dockerfile
+    image: layoutai/renderer:prod
+    container_name: layoutai-renderer
+    environment:
+      PORT: 3000
+    networks: [layoutai]
+
+volumes:
+  postgres-data:
+  redis-data:
+
+networks:
+  layoutai:
+    driver: bridge

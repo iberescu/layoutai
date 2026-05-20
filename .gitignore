@@ -19,3 +19,5 @@ Thumbs.db
 screenshots/
 tmp-cookies.txt
 tmp/
+deploy/.env.prod
+deploy/.env
