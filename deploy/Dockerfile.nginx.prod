@@ -1,0 +1,15 @@
+# Production nginx with the app's public/ baked in so static assets
+# (/img/*, /favicon.ico, etc.) are served directly by nginx instead of
+# falling through to PHP and returning 404. The /storage/* path is
+# mounted as a named volume at runtime so dynamic ad images still come
+# from the shared filesystem.
+FROM nginx:1.27-alpine
+
+COPY app/public /var/www/html/public
+
+# Ensure the storage symlink target exists inside the image so nginx
+# can resolve any pre-mount lookups. The runtime volume mount at
+# /var/www/html/public/storage overlays this.
+RUN mkdir -p /var/www/html/storage/app/public
+
+EXPOSE 80

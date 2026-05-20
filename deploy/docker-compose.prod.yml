@@ -22,17 +22,17 @@ services:
         condition: service_healthy
 
   nginx:
-    image: nginx:1.27-alpine
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.nginx.prod
+    image: layoutai/nginx:prod
     container_name: layoutai-nginx
     ports:
       - "80:80"
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
-      # Without this mount nginx can't see ad images on the shared
-      # storage volume — static /storage/* requests fall through to PHP
-      # which returns 404. Mounting the same shared volume here lets
-      # nginx serve generated ad images directly + lets Replicate fetch
-      # them.
+      # Shared volume so generated ad images (written by workers) are
+      # visible to nginx for /storage/* requests.
       - storage-public:/var/www/html/public/storage
     networks: [layoutai]
     depends_on:
