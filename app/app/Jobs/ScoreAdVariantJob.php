@@ -19,7 +19,9 @@ class ScoreAdVariantJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public int $timeout = 180;
+    // Job timeout must outlast the scoring service's 600s poll deadline +
+    // some margin for the synchronous HTTP roundtrips on top.
+    public int $timeout = 720;
     public int $tries   = 2;
 
     public function __construct(public int $variantId)

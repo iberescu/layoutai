@@ -80,12 +80,14 @@ class CreativeScoringService
                 return null;
             }
 
-            // Poll up to 90s for completion.
-            $deadline = time() + 90;
+            // Poll up to 10 min: TRIBE v2 takes ~75s when warm, but the
+            // first call after a replica cold-start can take 4-5 min while
+            // Replicate pulls the 24 GB image.
+            $deadline = time() + 600;
             while (time() < $deadline) {
                 $poll = Http::withToken($token, 'Token')->acceptJson()->timeout(15)->get($url);
                 if (! $poll->successful()) {
-                    sleep(2);
+                    sleep(3);
                     continue;
                 }
                 $prediction = $poll->json();
@@ -93,7 +95,7 @@ class CreativeScoringService
                 if (in_array($status, ['succeeded', 'failed', 'canceled'], true)) {
                     break;
                 }
-                sleep(2);
+                sleep(5);
             }
 
             if (($prediction['status'] ?? null) !== 'succeeded') {
