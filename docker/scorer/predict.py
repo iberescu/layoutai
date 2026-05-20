@@ -34,7 +34,6 @@ import tempfile
 import pathlib
 
 import numpy as np
-import soundfile as sf
 import imageio
 from PIL import Image
 
@@ -93,18 +92,15 @@ class Predictor(BasePredictor):
                 "version": "v2",
             }
 
-        # 1. Synthesise a 2-second still-frame video + silent audio.
+        # 1. Synthesise a 2-second still-frame video. TRIBE v2's
+        # get_events_dataframe accepts exactly one modality at a time, so we
+        # pass video only (audio_path / text_path would be an alternative).
         tmp_dir = pathlib.Path(tempfile.mkdtemp())
         video_path = tmp_dir / "stim.mp4"
-        audio_path = tmp_dir / "stim.wav"
         self._image_to_video(image, video_path, seconds=2, fps=8)
-        self._silent_audio(audio_path, seconds=2, sample_rate=16_000)
 
         # 2. Build the events dataframe + run prediction.
-        df = self.model.get_events_dataframe(
-            video_path=str(video_path),
-            audio_path=str(audio_path),
-        )
+        df = self.model.get_events_dataframe(video_path=str(video_path))
         preds, _segments = self.model.predict(events=df)
         # preds shape: (n_timesteps, n_vertices)
 
@@ -141,7 +137,3 @@ class Predictor(BasePredictor):
             for _ in range(seconds * fps):
                 w.append_data(frame)
 
-    @staticmethod
-    def _silent_audio(out_path: pathlib.Path, *, seconds: int, sample_rate: int) -> None:
-        samples = np.zeros(seconds * sample_rate, dtype=np.float32)
-        sf.write(str(out_path), samples, sample_rate)

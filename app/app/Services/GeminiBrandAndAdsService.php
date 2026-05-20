@@ -36,12 +36,35 @@ class GeminiBrandAndAdsService
 
         $context = $pages->map(fn ($p) => "## {$p->url}\n{$p->title}\n\n" . Str::limit($p->markdown ?? '', 2000))
             ->implode("\n\n---\n\n");
+        $contextEmpty = trim($context) === '';
 
         $sizesList = collect(self::DEFAULT_SIZES)
             ->map(fn ($s) => $s[0] . 'x' . $s[1])
             ->implode(', ');
 
         $eventsJson = json_encode($events ?: [], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+
+        // Logo colors extracted client-side become the canonical brand
+        // palette. The HTML pipeline already reads primary/accent/secondary
+        // from visual_identity_json, so locking these here flows through.
+        $logoColors = $session->logo_colors_json ?: [];
+        $logoBlock  = '';
+        if (! empty($logoColors)) {
+            $primary   = $logoColors[0] ?? '#2563EB';
+            $accent    = $logoColors[1] ?? $primary;
+            $secondary = $logoColors[2] ?? $accent;
+            $logoBlock = "\n\nBRAND PALETTE (extracted from the uploaded logo — USE THESE EXACTLY in visual_identity, do not invent colors):\n"
+                . "  primary_color  = {$primary}\n"
+                . "  accent_color   = {$accent}\n"
+                . "  secondary_color= {$secondary}\n"
+                . "  full_palette   = " . implode(', ', $logoColors);
+        }
+
+        $groundingRule = $contextEmpty
+            ? "GROUNDING (CRITICAL — crawl is empty):\n"
+                . "The website could not be crawled. DO NOT INFER industry, products, business_model, or target_audiences from the domain name or company name alone. Set `industry`, `business_model`, `short_description` to neutral/conservative values, and leave `main_products` empty. The user will refine these on the dashboard. Honor the BRAND PALETTE above as-is."
+            : "GROUNDING (CRITICAL):\n"
+                . "Use ONLY the CONTENT FROM CRAWL to determine industry, business_model, products, target audiences, and value propositions. Do not guess from the domain name or assume what the company does based on its name. If the crawl genuinely does not say, leave the field neutral rather than fabricate.";
 
         $prompt = <<<PROMPT
 You are an advertising strategist + brand analyst. From the website crawl below,
@@ -53,6 +76,9 @@ CAMPAIGN GOAL: {$session->campaign_goal}
 
 CONTENT FROM CRAWL:
 {$context}
+{$logoBlock}
+
+{$groundingRule}
 
 EVENTS (use 30% of concepts for these when non-empty):
 {$eventsJson}

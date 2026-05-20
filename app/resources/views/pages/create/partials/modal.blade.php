@@ -22,6 +22,19 @@
                     </div>
                     <input x-ref="logoInput" name="logo" type="file" accept="image/png,image/jpeg,image/svg+xml" @change="previewLogo" class="text-sm flex-1">
                 </div>
+                {{-- Live brand palette extracted from the logo — pinned to the
+                     Gemini prompt as the canonical brand colors. --}}
+                <template x-if="logoColors && logoColors.length">
+                    <div class="mt-2.5 flex items-center gap-2">
+                        <span class="text-xs text-muted">Palette:</span>
+                        <div class="flex items-center gap-1.5">
+                            <template x-for="c in logoColors" :key="c">
+                                <span class="inline-block w-5 h-5 rounded border border-line" :style="`background:${c}`" :title="c"></span>
+                            </template>
+                        </div>
+                        <span class="text-[10px] text-muted/70">used as brand colors</span>
+                    </div>
+                </template>
             </div>
             <div class="grid grid-cols-2 gap-4">
                 <div>

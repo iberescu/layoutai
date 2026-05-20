@@ -12,10 +12,20 @@ class CreateOnboardingSession
 {
     public function handle(array $input, ?UploadedFile $logo = null): OnboardingSession
     {
+        // Validate and de-dupe client-supplied logo colors (hex format only).
+        $logoColors = collect($input['logo_colors'] ?? [])
+            ->filter(fn ($c) => is_string($c) && preg_match('/^#[0-9a-fA-F]{6}$/', $c))
+            ->map(fn ($c) => strtolower($c))
+            ->unique()
+            ->take(8)
+            ->values()
+            ->all();
+
         $session = OnboardingSession::create([
             'website_url'       => $input['website_url'],
             'business_location' => $input['business_location'] ?? null,
             'campaign_goal'     => $input['campaign_goal'] ?? null,
+            'logo_colors_json'  => $logoColors ?: null,
             'status'            => 'queued',
             'steps'             => [
                 'crawl'            => ['status' => 'pending'],

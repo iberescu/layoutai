@@ -7,18 +7,59 @@ use App\Models\CrawlPage;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
+/**
+ * Crawl a website's homepage + a few key pages for brand grounding.
+ *
+ * Strategy:
+ *  1. Call Cloudflare browser-rendering /crawl. If the API returns the
+ *     legacy synchronous shape (`{result: {pages: [...]}}`) we use it.
+ *  2. The new v2 API returns `{result: "<job_uuid>", success: true}` —
+ *     in that case we poll the status endpoint until the crawl finishes
+ *     and ingest its pages.
+ *  3. If Cloudflare returns nothing usable inside our timeout, fall back
+ *     to a plain HTTP fetch of the homepage + /about. This guarantees
+ *     Gemini always has SOME real content to ground on, even when
+ *     Cloudflare is slow or misconfigured.
+ */
 class CloudflareCrawler
 {
+    private const POLL_DEADLINE_SECONDS = 60;
+    private const POLL_INTERVAL_SECONDS = 3;
+
     public function crawl(CrawlJob $job): void
     {
         $accountId = config('services.cloudflare.account_id');
         $token     = config('services.cloudflare.api_token');
         $endpoint  = config('services.cloudflare.endpoint');
 
+        if ($accountId && $token && $endpoint) {
+            $pages = $this->crawlViaCloudflare($job, $accountId, $token, $endpoint);
+            if (! empty($pages)) {
+                $this->ingest($job, ['pages' => $pages]);
+                return;
+            }
+            Log::info("CloudflareCrawler returned no usable pages for {$job->url}, falling back to direct HTTP");
+        }
+
+        $pages = $this->directHttpFallback($job->url);
+        if (! empty($pages)) {
+            $this->ingest($job, ['pages' => $pages]);
+            return;
+        }
+
+        // Final fallback: stub so the rest of the pipeline can run.
+        $this->ingest($job, $this->stubFor($job->url));
+    }
+
+    /**
+     * @return array<int,array<string,mixed>> List of page dicts (url/title/markdown).
+     */
+    private function crawlViaCloudflare(CrawlJob $job, string $accountId, string $token, string $endpoint): array
+    {
         $payload = [
             'url'    => $job->url,
-            'limit'  => $job->limit,
-            'depth'  => $job->depth,
+            'limit'  => $job->limit ?: 5,
+            'depth'  => $job->depth ?: 1,
             'formats'=> ['markdown', 'html'],
             'render' => true,
             'gotoOptions' => [
@@ -26,23 +67,163 @@ class CloudflareCrawler
                 'timeout'   => 60000,
             ],
         ];
+        $url = str_replace('{account}', $accountId, $endpoint);
 
-        if ($accountId && $token && $endpoint) {
-            try {
-                $url = str_replace('{account}', $accountId, $endpoint);
-                $response = Http::withToken($token)->timeout(120)->post($url, $payload);
-                if ($response->successful()) {
-                    $this->ingest($job, $response->json());
-                    return;
-                }
-                Log::warning('Cloudflare crawl failed: ' . $response->status() . ' ' . $response->body());
-            } catch (\Throwable $e) {
-                Log::warning('Cloudflare crawl threw: ' . $e->getMessage());
-            }
+        try {
+            $response = Http::withToken($token)->timeout(45)->post($url, $payload);
+        } catch (\Throwable $e) {
+            Log::warning('Cloudflare crawl threw: ' . $e->getMessage());
+            return [];
         }
 
-        // Stub fallback so the rest of the pipeline can run in dev.
-        $this->ingest($job, $this->stubFor($job->url));
+        if (! $response->successful()) {
+            Log::warning('Cloudflare crawl failed: ' . $response->status() . ' ' . $response->body());
+            return [];
+        }
+
+        $data = $response->json();
+
+        // (A) Legacy synchronous shape: pages already in the response.
+        $pages = $data['pages'] ?? $data['result']['pages'] ?? null;
+        if (is_array($pages) && ! empty($pages)) {
+            return $pages;
+        }
+
+        // (B) New async shape: result is a job UUID. Poll until done.
+        $jobUuid = is_string($data['result'] ?? null) ? $data['result'] : null;
+        if ($jobUuid) {
+            return $this->pollCloudflareJob($jobUuid, $accountId, $token, $endpoint);
+        }
+
+        Log::info('Cloudflare returned unfamiliar payload shape, ignoring');
+        return [];
+    }
+
+    /**
+     * Poll the v2 async crawl endpoint until the job is done or we hit the
+     * deadline. Returns the resulting pages array (possibly empty).
+     */
+    private function pollCloudflareJob(string $jobUuid, string $accountId, string $token, string $endpoint): array
+    {
+        $baseUrl = str_replace('{account}', $accountId, $endpoint);
+        $statusUrl = rtrim($baseUrl, '/') . '/' . $jobUuid;
+
+        $deadline = time() + self::POLL_DEADLINE_SECONDS;
+        while (time() < $deadline) {
+            try {
+                $response = Http::withToken($token)->timeout(15)->get($statusUrl);
+            } catch (\Throwable $e) {
+                Log::info('Cloudflare poll exception: ' . $e->getMessage());
+                sleep(self::POLL_INTERVAL_SECONDS);
+                continue;
+            }
+
+            if (! $response->successful()) {
+                Log::info('Cloudflare poll non-2xx: ' . $response->status() . ' (will retry)');
+                sleep(self::POLL_INTERVAL_SECONDS);
+                continue;
+            }
+
+            $data   = $response->json();
+            $status = $data['result']['status'] ?? $data['status'] ?? null;
+            $pages  = $data['result']['pages']  ?? $data['pages']  ?? null;
+
+            // Pages already arrived OR job marked done with pages
+            if (is_array($pages) && ! empty($pages)) {
+                Log::info("Cloudflare crawl {$jobUuid} returned " . count($pages) . " page(s)");
+                return $pages;
+            }
+
+            if (in_array($status, ['completed', 'success', 'done'], true)) {
+                Log::info("Cloudflare crawl {$jobUuid} marked {$status} with 0 pages");
+                return [];
+            }
+            if (in_array($status, ['failed', 'error', 'cancelled'], true)) {
+                Log::info("Cloudflare crawl {$jobUuid} marked {$status}");
+                return [];
+            }
+
+            sleep(self::POLL_INTERVAL_SECONDS);
+        }
+
+        Log::info("Cloudflare crawl {$jobUuid} did not complete within " . self::POLL_DEADLINE_SECONDS . 's');
+        return [];
+    }
+
+    /**
+     * Plain HTTP fetch of the homepage + a small set of likely-relevant
+     * paths. Strips HTML to text so Gemini can read the content. This is
+     * the safety net that guarantees we never feed Gemini an empty crawl.
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    private function directHttpFallback(string $homepageUrl): array
+    {
+        $parts = parse_url($homepageUrl);
+        if (! $parts || empty($parts['host'])) {
+            return [];
+        }
+        $origin = ($parts['scheme'] ?? 'https') . '://' . $parts['host'];
+        $candidates = array_unique([
+            rtrim($homepageUrl, '/'),
+            $origin . '/about',
+            $origin . '/about-us',
+            $origin . '/products',
+            $origin . '/services',
+        ]);
+
+        $pages = [];
+        foreach ($candidates as $url) {
+            if (count($pages) >= 4) break;
+            try {
+                $resp = Http::withHeaders([
+                    'User-Agent' => 'Mozilla/5.0 (compatible; LayoutAIBot/1.0; +https://layout.ai/bot)',
+                    'Accept'     => 'text/html,application/xhtml+xml',
+                ])->timeout(20)->get($url);
+                if (! $resp->successful()) {
+                    continue;
+                }
+                $html  = $resp->body();
+                $title = $this->extractTitle($html);
+                $text  = $this->htmlToText($html);
+                if (mb_strlen(trim($text)) < 80) {
+                    continue;
+                }
+                $pages[] = [
+                    'url'      => $url,
+                    'title'    => $title ?: $url,
+                    'markdown' => $text,
+                    'meta'     => [],
+                    'images'   => [],
+                    'links'    => [],
+                ];
+            } catch (\Throwable $e) {
+                Log::info("Direct HTTP fetch failed for {$url}: " . $e->getMessage());
+            }
+        }
+        if (! empty($pages)) {
+            Log::info("Direct HTTP fallback returned " . count($pages) . ' page(s) for ' . $homepageUrl);
+        }
+        return $pages;
+    }
+
+    private function extractTitle(string $html): ?string
+    {
+        if (preg_match('#<title[^>]*>(.*?)</title>#is', $html, $m)) {
+            return trim(html_entity_decode(strip_tags($m[1]), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+        }
+        return null;
+    }
+
+    private function htmlToText(string $html): string
+    {
+        // Drop script/style/nav/footer blocks before stripping tags so the
+        // resulting text is closer to article copy.
+        $html = preg_replace('#<(script|style|noscript|svg)\b[^>]*>.*?</\1>#is', ' ', $html);
+        $html = preg_replace('#<(nav|footer|header)\b[^>]*>.*?</\1>#is', ' ', $html) ?? $html;
+        $text = html_entity_decode(strip_tags($html), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $text = preg_replace('/\s+/u', ' ', $text);
+        return mb_substr(trim($text), 0, 4000);
     }
 
     private function ingest(CrawlJob $job, array $data): void

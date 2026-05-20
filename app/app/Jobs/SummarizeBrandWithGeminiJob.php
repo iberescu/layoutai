@@ -91,6 +91,25 @@ class SummarizeBrandWithGeminiJob implements ShouldQueue
 
     private function persistBrand(OnboardingSession $session, array $payload): BrandProfile
     {
+        // If the user uploaded a logo, the client-side extractor sent us the
+        // canonical palette. Override Gemini's color choices with those so
+        // the generated ads can't clash with the actual logo.
+        $logoColors = $session->logo_colors_json ?: [];
+        $visualIdentity = $payload['visual_identity'] ?? [];
+        $colorsJson     = $payload['colors']           ?? [];
+        if (! empty($logoColors)) {
+            $visualIdentity['primary_color']   = $logoColors[0];
+            $visualIdentity['accent_color']    = $logoColors[1] ?? $logoColors[0];
+            $visualIdentity['secondary_color'] = $logoColors[2] ?? ($logoColors[1] ?? $logoColors[0]);
+            $colorsJson = [
+                'primary'   => $logoColors[0],
+                'accent'    => $logoColors[1] ?? $logoColors[0],
+                'secondary' => $logoColors[2] ?? ($logoColors[1] ?? $logoColors[0]),
+                'palette'   => $logoColors,
+                'source'    => 'logo',
+            ];
+        }
+
         $brand = BrandProfile::create([
             'workspace_id'           => $session->workspace_id,
             'onboarding_session_id'  => $session->id,
@@ -100,8 +119,8 @@ class SummarizeBrandWithGeminiJob implements ShouldQueue
             'description'            => $payload['short_description']   ?? null,
             'target_audience_json'   => $payload['target_audiences']    ?? [],
             'brand_voice_json'       => $payload['brand_voice']         ?? [],
-            'colors_json'            => $payload['colors']              ?? [],
-            'visual_identity_json'   => $payload['visual_identity']     ?? [],
+            'colors_json'            => $colorsJson,
+            'visual_identity_json'   => $visualIdentity,
             'proof_points_json'      => $payload['proof_points']        ?? [],
             'ctas_json'              => $payload['recommended_ctas']    ?? [],
             'compliance_risks_json'  => $payload['ad_compliance_risks'] ?? [],

@@ -14,11 +14,12 @@ class OnboardingSession extends Model
     protected $fillable = [
         'uuid', 'website_url', 'logo_path', 'business_location',
         'campaign_goal', 'user_id', 'workspace_id', 'brand_profile_id',
-        'status', 'steps', 'error',
+        'status', 'steps', 'error', 'logo_colors_json',
     ];
 
     protected $casts = [
-        'steps' => 'array',
+        'steps'            => 'array',
+        'logo_colors_json' => 'array',
     ];
 
     protected static function booted(): void

@@ -33,8 +33,23 @@ do_api() {
 DROPLET_IP="${1:-}"
 if [[ -z "$DROPLET_IP" ]]; then
     echo "→ Picking SSH key..."
-    SSH_KEY_ID=$(do_api https://api.digitalocean.com/v2/account/keys | python3 -c "import sys,json; print(json.load(sys.stdin)['ssh_keys'][0]['id'])")
-    echo "  using ssh key id=$SSH_KEY_ID"
+    # Pick the key matching the LOCAL ~/.ssh/id_ed25519 by fingerprint so we
+    # can actually SSH into the droplet later. Override the path with
+    # LAYOUTAI_SSH_PUBKEY if your key lives elsewhere.
+    PUBKEY_PATH="${LAYOUTAI_SSH_PUBKEY:-$HOME/.ssh/id_ed25519.pub}"
+    [[ -f "$PUBKEY_PATH" ]] || { echo "  no local pubkey at $PUBKEY_PATH"; exit 1; }
+    LOCAL_FP=$(ssh-keygen -E md5 -lf "$PUBKEY_PATH" | awk '{print $2}' | sed 's/MD5://')
+    SSH_KEY_ID=$(do_api https://api.digitalocean.com/v2/account/keys | python3 -c "
+import sys,json
+fp = '${LOCAL_FP}'
+keys = json.load(sys.stdin)['ssh_keys']
+match = [k for k in keys if k['fingerprint'] == fp]
+if not match:
+    print('NO_MATCH', file=sys.stderr); sys.exit(1)
+print(match[0]['id'])
+")
+    [[ -z "$SSH_KEY_ID" ]] && { echo "  no DO key matching local fingerprint $LOCAL_FP"; exit 1; }
+    echo "  using ssh key id=$SSH_KEY_ID (fp=$LOCAL_FP)"
 
     echo "→ Creating droplet ($NAME, $SIZE, $REGION)..."
     USER_DATA=$(cat deploy/cloud-init.yaml | python3 -c "import sys,json; print(json.dumps(sys.stdin.read()))")
@@ -118,6 +133,7 @@ rsync -az --delete \
     --exclude 'app/storage/framework/cache/*' \
     --exclude 'app/storage/framework/sessions/*' \
     --exclude 'app/storage/framework/views/*' \
+    --exclude 'docker/scorer/.cog/' \
     -e "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" \
     ./ root@$DROPLET_IP:/opt/layoutai/
 

@@ -34,6 +34,8 @@ class OnboardingController extends Controller
             'business_location' => ['nullable', 'string', 'max:255'],
             'campaign_goal'     => ['nullable', 'string', Rule::in(['awareness','traffic','leads','sales'])],
             'logo'              => ['nullable', 'file', 'image', 'max:5120'],
+            'logo_colors'       => ['nullable', 'array', 'max:8'],
+            'logo_colors.*'     => ['string', 'regex:/^#[0-9a-fA-F]{6}$/'],
         ]);
 
         $session = $action->handle($data, $request->file('logo'));

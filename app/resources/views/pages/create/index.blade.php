@@ -637,6 +637,69 @@
 </section>
 
 <script>
+/**
+ * Sample dominant colors from a logo file by drawing it onto a small
+ * offscreen canvas, quantising RGB to 32-level buckets, and returning the
+ * top N most-populous buckets — filtered for near-white/black so we don't
+ * just return the page background. Runs in ~5 ms even for big logos.
+ */
+async function extractLogoColors(file, opts = {}) {
+    const { count = 5, maxDim = 128 } = opts;
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+            try {
+                const scale = Math.min(maxDim / img.width, maxDim / img.height, 1);
+                const w = Math.max(1, Math.round(img.width * scale));
+                const h = Math.max(1, Math.round(img.height * scale));
+                const canvas = document.createElement('canvas');
+                canvas.width = w; canvas.height = h;
+                const ctx = canvas.getContext('2d', { willReadFrequently: true });
+                ctx.drawImage(img, 0, 0, w, h);
+                const px = ctx.getImageData(0, 0, w, h).data;
+                // Quantise: 32 levels per channel = 32^3 buckets, plenty.
+                const Q = 32, STEP = 256 / Q;
+                const buckets = new Map();
+                for (let i = 0; i < px.length; i += 4) {
+                    const a = px[i + 3];
+                    if (a < 128) continue;                       // skip transparent
+                    const r = px[i], g = px[i + 1], b = px[i + 2];
+                    // Skip near-white (likely paper bg) and near-black (likely text)
+                    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+                    if (max > 240 && min > 240) continue;
+                    if (max < 24) continue;
+                    // Skip near-greyscale (saturation low) — usually borders/text
+                    if (max - min < 18) continue;
+                    const qr = Math.floor(r / STEP), qg = Math.floor(g / STEP), qb = Math.floor(b / STEP);
+                    const key = (qr << 10) | (qg << 5) | qb;
+                    buckets.set(key, (buckets.get(key) || 0) + 1);
+                }
+                const sorted = [...buckets.entries()].sort((a, b) => b[1] - a[1]);
+                const colors = [];
+                const used = new Set();
+                for (const [key] of sorted) {
+                    if (colors.length >= count) break;
+                    const qr = (key >> 10) & 31, qg = (key >> 5) & 31, qb = key & 31;
+                    const r = Math.round(qr * STEP + STEP / 2);
+                    const g = Math.round(qg * STEP + STEP / 2);
+                    const b = Math.round(qb * STEP + STEP / 2);
+                    // Suppress near-duplicates so the top 5 are distinct.
+                    const sig = `${Math.round(r/40)}-${Math.round(g/40)}-${Math.round(b/40)}`;
+                    if (used.has(sig)) continue;
+                    used.add(sig);
+                    const hex = '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
+                    colors.push(hex);
+                }
+                resolve(colors);
+            } catch (_) {
+                resolve([]);
+            }
+        };
+        img.onerror = () => resolve([]);
+        img.src = URL.createObjectURL(file);
+    });
+}
+
 function createCampaignForm() {
     return {
         open: false,
@@ -645,11 +708,16 @@ function createCampaignForm() {
         businessLocation: '',
         campaignGoal: 'awareness',
         logoPreview: null,
+        logoColors: [],
         error: null,
-        previewLogo(event) {
+        async previewLogo(event) {
             const file = event.target.files[0];
             if (!file) return;
             this.logoPreview = URL.createObjectURL(file);
+            // Extract brand colours from the logo — fed into the Gemini
+            // prompt server-side as a hard "USE THESE EXACTLY" constraint
+            // so the generated ads don't clash with the uploaded logo.
+            this.logoColors = await extractLogoColors(file, { count: 5 });
         },
         async submit(event) {
             this.error = null;
@@ -659,6 +727,7 @@ function createCampaignForm() {
             data.append('website_url', this.websiteUrl);
             data.append('business_location', this.businessLocation);
             data.append('campaign_goal', this.campaignGoal);
+            for (const c of this.logoColors) data.append('logo_colors[]', c);
             try {
                 const res = await fetch('{{ route('create.start') }}', {
                     method: 'POST',
