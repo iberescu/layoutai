@@ -13,7 +13,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 // Public marketing + onboarding
-Route::get('/', fn () => redirect()->route('create.index'));
+// Apex → /create with a permanent redirect.
+Route::redirect('/', '/create', 301);
 Route::get('/create', [CreateController::class, 'index'])->name('create.index');
 Route::post('/create/start', [OnboardingController::class, 'start'])->name('create.start');
 Route::get('/create/{session}/processing', [OnboardingController::class, 'processing'])->name('create.processing');
