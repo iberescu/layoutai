@@ -1,0 +1,17 @@
+<!doctype html><html><head><meta charset="utf-8">{{fonts_link}}
+<style>
+  html,body{margin:0}
+  .ad{position:relative;width:{{w}}px;height:{{h}}px;overflow:hidden;font-family:{{body_font}};
+      background:{{primary}};color:{{on_primary}};display:flex;align-items:center;gap:9px;padding:0 13px;}
+  .logo{flex:none;background:{{chip_bg}};border-radius:5px;padding:3px 4px;}
+  .logo img{display:block;height:20px;width:auto;max-width:46px;}
+  .headline{flex:1;min-width:0;font-family:{{headline_font}};font-weight:700;font-size:14px;
+            line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .cta{flex:none;background:{{on_primary}};color:{{primary}};font-weight:700;font-size:11px;
+       padding:6px 10px;border-radius:6px;white-space:nowrap;}
+</style></head>
+<body><div class="ad">
+  {{logo_block}}
+  <div class="headline">{{headline}}</div>
+  <span class="cta">{{cta}}</span>
+</div></body></html>

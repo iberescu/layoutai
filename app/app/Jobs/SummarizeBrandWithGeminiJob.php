@@ -10,9 +10,12 @@ use App\Models\CrawlPage;
 use App\Models\OnboardingSession;
 use App\Models\UploadedAsset;
 use App\Services\BrandImageHarvester;
+use App\Services\EcommerceDetector;
+use App\Services\FontMatchingService;
 use App\Services\GeminiBrandAndAdsService;
 use App\Services\ImageFocalService;
 use App\Services\NewsEventService;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -39,7 +42,7 @@ class SummarizeBrandWithGeminiJob implements ShouldQueue
         $this->onQueue('ai');
     }
 
-    public function handle(GeminiBrandAndAdsService $service, NewsEventService $events, BrandImageHarvester $imageHarvester, ImageFocalService $focal): void
+    public function handle(GeminiBrandAndAdsService $service, NewsEventService $events, BrandImageHarvester $imageHarvester, ImageFocalService $focal, FontMatchingService $fonts, EcommerceDetector $ecomDetector): void
     {
         $session = OnboardingSession::findOrFail($this->onboardingSessionId);
         $session->setStep('summarize_brand', 'in_progress');
@@ -70,8 +73,12 @@ class SummarizeBrandWithGeminiJob implements ShouldQueue
         // runmyprint AI image for those tiles.
         $brandImages = $imageHarvester->harvestFor($session, 5);
 
+        // Detect ecommerce up front: shops get template + product ads only
+        // (20 + 20 = 40), so we skip the 10 Gemini concept ads entirely.
+        $ecom = $ecomDetector->detect($session->website_url);
+
         try {
-            $payload = $service->generate($session, [], null, $brandImages);
+            $payload = $service->generate($session, [], null, $brandImages, withConcepts: ! $ecom['is_ecommerce']);
         } catch (\App\Exceptions\GeminiQuotaExceededException $e) {
             // Project-level billing cap — needs admin action, not a user retry.
             $msg = "Our AI service has hit its monthly budget cap. We're working on it — please check back in a few hours, or contact support@layout.ai for an urgent generation.";
@@ -96,6 +103,31 @@ class SummarizeBrandWithGeminiJob implements ShouldQueue
         }
 
         $brand = $this->persistBrand($session, $payload['brand']);
+
+        // Record the ecommerce verdict so GenerateProductAdsJob can act on it
+        // without re-detecting.
+        $brand->update([
+            'is_ecommerce'       => $ecom['is_ecommerce'],
+            'ecommerce_platform' => $ecom['platform'],
+        ]);
+
+        // Match the brand's typefaces to the closest Google Fonts so template
+        // ads render with on-brand typography (best-effort — never blocks).
+        try {
+            $logoBytes = null;
+            $logoMime  = null;
+            if ($session->logo_path) {
+                $disk = Storage::disk(config('filesystems.default', 'public'));
+                if ($disk->exists($session->logo_path)) {
+                    $logoBytes = $disk->get($session->logo_path);
+                    $logoMime  = $disk->mimeType($session->logo_path) ?: 'image/png';
+                }
+            }
+            $brand->update(['fonts_json' => $fonts->detect($brand->website_url, $logoBytes, $logoMime)]);
+        } catch (\Throwable $e) {
+            \Log::info('Font matching skipped: ' . $e->getMessage());
+        }
+
         $session->setStep('summarize_brand', 'completed', ['brand_profile_id' => $brand->id]);
 
         $campaign = Campaign::create([

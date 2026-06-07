@@ -79,6 +79,66 @@ class GeminiClient
         }
     }
 
+    /**
+     * Vision variant of generateJson: sends one or more inline images alongside
+     * the prompt and forces a JSON response. Used by the template validation
+     * judge (screenshot → rubric score) and brand-font inference (logo → fonts).
+     *
+     * @param array<int,array{bytes:string,mime:string}> $images
+     */
+    public function generateJsonWithImages(string $prompt, array $images, array $schema = [], ?string $modelOverride = null, ?int $timeoutSeconds = null, ?int $maxOutputTokens = null): ?array
+    {
+        if (! $this->isConfigured()) {
+            return null;
+        }
+        $base  = rtrim((string) config('services.gemini.base'), '/');
+        // Vision needs a multimodal model; default to the HTML model (2.5-flash
+        // is multimodal) unless the caller overrides.
+        $model = $modelOverride !== null && $modelOverride !== ''
+            ? $modelOverride
+            : (string) config('services.gemini.model');
+        $key   = (string) config('services.gemini.api_key');
+        $url   = "{$base}/models/{$model}:generateContent?key={$key}";
+
+        $parts = [['text' => $prompt]];
+        foreach ($images as $img) {
+            if (empty($img['bytes'])) {
+                continue;
+            }
+            $parts[] = ['inline_data' => [
+                'mime_type' => $img['mime'] ?? 'image/png',
+                'data'      => base64_encode($img['bytes']),
+            ]];
+        }
+
+        $body = [
+            'contents' => [['role' => 'user', 'parts' => $parts]],
+            'generationConfig' => array_filter([
+                'responseMimeType' => 'application/json',
+                'responseSchema'   => $schema ?: null,
+                'thinkingConfig'   => ['thinkingBudget' => 0],
+                'maxOutputTokens'  => $maxOutputTokens,
+            ], fn ($v) => $v !== null),
+        ];
+
+        try {
+            $res = $this->http($timeoutSeconds)->post($url, $body);
+            if (! $res->successful()) {
+                Log::warning('Gemini vision call failed: ' . $res->status() . ' ' . substr($res->body(), 0, 300));
+                return null;
+            }
+            $text = $res->json()['candidates'][0]['content']['parts'][0]['text'] ?? null;
+            if (! $text) {
+                return null;
+            }
+            $decoded = json_decode($text, true);
+            return is_array($decoded) ? $decoded : null;
+        } catch (\Throwable $e) {
+            Log::warning('Gemini vision exception: ' . $e->getMessage());
+            return null;
+        }
+    }
+
     protected function http(?int $timeoutSeconds = null): PendingRequest
     {
         // Default 180s. The combined brand+ads call now generates 30 concepts

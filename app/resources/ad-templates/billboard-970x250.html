@@ -1,0 +1,26 @@
+<!doctype html><html><head><meta charset="utf-8">{{fonts_link}}
+<style>
+  html,body{margin:0}
+  .ad{position:relative;width:{{w}}px;height:{{h}}px;overflow:hidden;font-family:{{body_font}};
+      display:flex;background:{{primary}};color:{{on_primary}};}
+  .copy{flex:1;padding:24px 36px;display:flex;flex-direction:column;justify-content:center;gap:8px;}
+  .logo{display:inline-block;background:{{chip_bg}};border-radius:7px;padding:5px 8px;align-self:flex-start;}
+  .logo img{display:block;height:24px;width:auto;max-width:150px;}
+  .headline{font-family:{{headline_font}};font-weight:800;font-size:33px;line-height:1.02;
+            letter-spacing:-.02em;margin:0;
+            display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .sub{font-size:15px;opacity:.92;margin:0;
+       display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .cta{align-self:flex-start;background:{{on_primary}};color:{{primary}};font-weight:700;
+       font-size:15px;padding:12px 22px;border-radius:8px;margin-top:4px;}
+  .panel{flex:0 0 34%;{{hero_css}}}
+</style></head>
+<body><div class="ad">
+  <div class="copy">
+    {{logo_block}}
+    <div class="headline">{{headline}}</div>
+    {{sub_block}}
+    <span class="cta">{{cta}}</span>
+  </div>
+  <div class="panel"></div>
+</div></body></html>

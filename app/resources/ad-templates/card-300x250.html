@@ -1,0 +1,22 @@
+<!doctype html><html><head><meta charset="utf-8">{{fonts_link}}
+<style>
+  html,body{margin:0}
+  .ad{position:relative;width:{{w}}px;height:{{h}}px;overflow:hidden;background:#fff;
+      font-family:{{body_font}};padding:20px;display:flex;flex-direction:column;
+      border-top:5px solid {{primary}};}
+  .logo{display:inline-block;margin-bottom:14px;align-self:flex-start;}
+  .logo img{display:block;height:26px;width:auto;max-width:150px;}
+  .headline{font-family:{{headline_font}};font-weight:800;font-size:24px;line-height:1.08;
+            letter-spacing:-.01em;color:{{secondary}};margin:0 0 8px;
+            display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
+  .sub{font-size:13px;color:#475569;line-height:1.3;
+       display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
+  .cta{margin-top:auto;align-self:flex-start;background:{{primary}};color:{{on_primary}};
+       font-weight:700;font-size:13px;padding:10px 18px;border-radius:8px;}
+</style></head>
+<body><div class="ad">
+  {{logo_block}}
+  <div class="headline">{{headline}}</div>
+  {{sub_block}}
+  <span class="cta">{{cta}}</span>
+</div></body></html>

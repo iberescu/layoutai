@@ -53,10 +53,10 @@ class GeminiBrandAndAdsService
      * (Weather / Market / TechNews / Holiday) are deactivated.
      */
     public const COHORT_MIX = [
-        'standard' => 14,
-        'animated' => 7,
-        'creative' => 4,
-        'social'   => 4,
+        'standard' => 3,
+        'animated' => 2,
+        'creative' => 2,
+        'social'   => 2,
         'showcase' => 1,
     ];
 
@@ -80,7 +80,7 @@ class GeminiBrandAndAdsService
      *   Gemini may set `real_image_url` on up to N concepts to use a real
      *   brand image instead of a runmyprint AI image for those tiles.
      */
-    public function generate(OnboardingSession $session, array $events = [], ?int $count = null, array $brandImages = []): array
+    public function generate(OnboardingSession $session, array $events = [], ?int $count = null, array $brandImages = [], bool $withConcepts = true): array
     {
         $count ??= array_sum(self::COHORT_MIX);
 
@@ -123,6 +123,12 @@ class GeminiBrandAndAdsService
         if (! $brand) {
             Log::warning('GeminiBrandAndAdsService: brand call returned no payload for session '.$session->id);
             throw new \RuntimeException('Gemini brand call returned no data for this site.');
+        }
+
+        // Ecommerce shops get template + product ads only (no Gemini concept
+        // ads), so skip the concepts call entirely — saves the larger call.
+        if (! $withConcepts) {
+            return ['brand' => $brand, 'concepts' => []];
         }
 
         // ---- 2) Concepts (uses brand as input context, no brand block in output) ----

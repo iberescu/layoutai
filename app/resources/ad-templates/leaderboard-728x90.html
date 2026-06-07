@@ -1,0 +1,20 @@
+<!doctype html><html><head><meta charset="utf-8">{{fonts_link}}
+<style>
+  html,body{margin:0}
+  .ad{position:relative;width:{{w}}px;height:{{h}}px;overflow:hidden;font-family:{{body_font}};
+      background:linear-gradient(90deg,{{primary}} 0%,{{accent}} 100%);color:{{on_primary}};
+      display:flex;align-items:center;gap:18px;padding:0 22px;}
+  .logo{flex:none;background:{{chip_bg}};border-radius:7px;padding:6px 9px;}
+  .logo img{display:block;height:32px;width:auto;max-width:150px;}
+  .mid{flex:1;min-width:0;}
+  .headline{font-family:{{headline_font}};font-weight:800;font-size:20px;line-height:1.04;
+            letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .sub{font-size:12px;opacity:.9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .cta{flex:none;background:{{on_primary}};color:{{primary}};font-weight:700;font-size:14px;
+       padding:11px 20px;border-radius:8px;white-space:nowrap;}
+</style></head>
+<body><div class="ad">
+  {{logo_block}}
+  <div class="mid"><div class="headline">{{headline}}</div>{{sub_block}}</div>
+  <span class="cta">{{cta}}</span>
+</div></body></html>

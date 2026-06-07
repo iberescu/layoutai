@@ -1,0 +1,26 @@
+<!doctype html><html><head><meta charset="utf-8">{{fonts_link}}
+<style>
+  html,body{margin:0}
+  .ad{position:relative;width:{{w}}px;height:{{h}}px;overflow:hidden;color:#fff;
+      font-family:{{body_font}};{{hero_css}}}
+  .scrim{position:absolute;inset:0;background:linear-gradient(180deg,rgba(11,18,32,.12) 0%,rgba(11,18,32,.85) 80%);}
+  .logo{position:absolute;top:54px;left:54px;z-index:3;background:{{chip_bg}};border-radius:16px;padding:16px 22px;}
+  .logo img{display:block;height:64px;width:auto;max-width:360px;}
+  .content{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:64px 72px 76px;}
+  .headline{font-family:{{headline_font}};font-weight:800;font-size:78px;line-height:1.04;
+            letter-spacing:-.02em;margin:0 0 22px;text-shadow:0 2px 24px rgba(0,0,0,.4);overflow-wrap:anywhere;
+            display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;}
+  .sub{font-size:34px;opacity:.92;margin-bottom:40px;line-height:1.25;
+       display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
+  .cta{display:inline-block;background:{{primary}};color:{{on_primary}};font-weight:700;
+       font-size:36px;padding:26px 52px;border-radius:999px;}
+</style></head>
+<body><div class="ad">
+  <div class="scrim"></div>
+  {{logo_block}}
+  <div class="content">
+    <div class="headline">{{headline}}</div>
+    {{sub_block}}
+    <span class="cta">{{cta}}</span>
+  </div>
+</div></body></html>

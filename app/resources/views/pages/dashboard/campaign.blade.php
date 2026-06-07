@@ -123,6 +123,8 @@
                     'creative' => ['Creative',  'bg-accent/15 text-accent'],
                     'social'   => ['Social',    'bg-success/15 text-success'],
                     'showcase' => ['★ Showcase', 'bg-gradient-to-r from-primary to-accent text-white'],
+                    'template' => ['Template',  'bg-ink/10 text-ink'],
+                    'product'  => ['Shop',      'bg-success/15 text-success'],
                     default    => null,
                 };
             @endphp

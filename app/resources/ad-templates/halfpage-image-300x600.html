@@ -1,0 +1,25 @@
+<!doctype html><html><head><meta charset="utf-8">{{fonts_link}}
+<style>
+  html,body{margin:0}
+  .ad{position:relative;width:{{w}}px;height:{{h}}px;overflow:hidden;font-family:{{body_font}};
+      display:flex;flex-direction:column;background:#fff;}
+  .hero{flex:0 0 56%;position:relative;{{hero_css}}}
+  .logo{position:absolute;top:14px;left:14px;z-index:3;background:{{chip_bg}};border-radius:8px;padding:7px 10px;}
+  .logo img{display:block;height:26px;width:auto;max-width:150px;}
+  .copy{flex:1;padding:22px 20px;display:flex;flex-direction:column;border-top:5px solid {{primary}};}
+  .headline{font-family:{{headline_font}};font-weight:800;font-size:24px;line-height:1.08;
+            letter-spacing:-.01em;color:{{secondary}};margin:0 0 10px;overflow-wrap:anywhere;
+            display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;}
+  .sub{font-size:14px;color:#475569;line-height:1.35;
+       display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;}
+  .cta{margin-top:auto;text-align:center;background:{{primary}};color:{{on_primary}};font-weight:700;
+       font-size:15px;padding:13px 16px;border-radius:8px;}
+</style></head>
+<body><div class="ad">
+  <div class="hero">{{logo_block}}</div>
+  <div class="copy">
+    <div class="headline">{{headline}}</div>
+    {{sub_block}}
+    <span class="cta">{{cta}}</span>
+  </div>
+</div></body></html>

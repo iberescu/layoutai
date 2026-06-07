@@ -12,6 +12,7 @@ class BrandProfile extends Model
         'industry', 'description', 'target_audience_json', 'brand_voice_json',
         'colors_json', 'visual_identity_json', 'proof_points_json',
         'ctas_json', 'compliance_risks_json', 'logo_asset_id',
+        'fonts_json', 'is_ecommerce', 'ecommerce_platform',
     ];
 
     protected $casts = [
@@ -22,6 +23,8 @@ class BrandProfile extends Model
         'proof_points_json'      => 'array',
         'ctas_json'              => 'array',
         'compliance_risks_json'  => 'array',
+        'fonts_json'             => 'array',
+        'is_ecommerce'           => 'boolean',
     ];
 
     public function workspace(): BelongsTo
@@ -58,5 +61,52 @@ class BrandProfile extends Model
         return $this->visual_identity_json['secondary_color']
             ?? $this->colors_json['secondary']
             ?? '#0F172A';
+    }
+
+    /**
+     * Closest-matched Google Font for headlines/display. Falls back to a
+     * neutral grotesque so templates always render with a real webfont.
+     */
+    public function headlineFont(): string
+    {
+        return $this->fonts_json['google_primary'] ?? 'Inter';
+    }
+
+    /**
+     * Closest-matched Google Font for body/sub copy. Falls back to the
+     * headline font when only one family was detected.
+     */
+    public function bodyFont(): string
+    {
+        return $this->fonts_json['google_secondary']
+            ?? $this->fonts_json['google_primary']
+            ?? 'Inter';
+    }
+
+    /**
+     * A <link> tag loading the matched Google Fonts, ready to drop into a
+     * template <head>. Empty string when no fonts were matched.
+     */
+    public function googleFontsLink(): string
+    {
+        if (! empty($this->fonts_json['google_link'])) {
+            return $this->fonts_json['google_link'];
+        }
+
+        $families = array_values(array_unique(array_filter([
+            $this->fonts_json['google_primary']   ?? 'Inter',
+            $this->fonts_json['google_secondary'] ?? null,
+        ])));
+        if (empty($families)) {
+            return '';
+        }
+
+        $query = collect($families)
+            ->map(fn (string $f) => 'family=' . str_replace(' ', '+', $f) . ':wght@400;600;700;800')
+            ->implode('&');
+
+        return '<link rel="preconnect" href="https://fonts.googleapis.com">'
+            . '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
+            . '<link href="https://fonts.googleapis.com/css2?' . $query . '&display=swap" rel="stylesheet">';
     }
 }

@@ -1,0 +1,27 @@
+<!doctype html><html><head><meta charset="utf-8">{{fonts_link}}
+<style>
+  html,body{margin:0}
+  .ad{position:relative;width:{{w}}px;height:{{h}}px;overflow:hidden;color:#fff;
+      font-family:{{body_font}};{{hero_css}}}
+  .scrim{position:absolute;inset:0;background:linear-gradient(180deg,rgba(11,18,32,.45) 0%,rgba(11,18,32,.05) 38%,rgba(11,18,32,.88) 100%);}
+  .logobox{position:absolute;top:120px;left:50%;transform:translateX(-50%);z-index:3;
+           background:{{chip_bg}};border-radius:18px;padding:18px 26px;}
+  .logobox img{display:block;height:64px;width:auto;max-width:420px;}
+  .content{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:90px 72px 150px;text-align:center;}
+  .headline{font-family:{{headline_font}};font-weight:800;font-size:96px;line-height:1.02;
+            letter-spacing:-.02em;margin:0 0 28px;text-shadow:0 2px 24px rgba(0,0,0,.45);
+            display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden;}
+  .sub{font-size:38px;opacity:.94;margin-bottom:52px;line-height:1.28;
+       display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
+  .cta{display:inline-block;background:{{primary}};color:{{on_primary}};font-weight:700;
+       font-size:40px;padding:30px 64px;border-radius:999px;}
+</style></head>
+<body><div class="ad">
+  <div class="scrim"></div>
+  <div class="logobox">{{logo_block}}</div>
+  <div class="content">
+    <div class="headline">{{headline}}</div>
+    {{sub_block}}
+    <span class="cta">{{cta}}</span>
+  </div>
+</div></body></html>

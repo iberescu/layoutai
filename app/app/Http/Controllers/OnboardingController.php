@@ -8,6 +8,8 @@ use App\Jobs\ExtractBrandJob;
 use App\Jobs\GenerateAdImagePromptsJob;
 use App\Jobs\GenerateAdImagesJob;
 use App\Jobs\GenerateAdTemplatesJob;
+use App\Jobs\GenerateProductAdsJob;
+use App\Jobs\GenerateTemplateAdsJob;
 use App\Jobs\SummarizeBrandWithGeminiJob;
 use App\Mail\GettingStartedEmail;
 use App\Mail\WelcomeEmail;
@@ -56,8 +58,12 @@ class OnboardingController extends Controller
         Bus::chain([
             new CrawlWebsiteJob($session->id),
             new ExtractBrandJob($session->id),
-            // Single Gemini call covers brand summary + 30 ad concepts.
+            // Single Gemini call covers brand summary + 10 ad concepts.
             new SummarizeBrandWithGeminiJob($session->id),
+            // 20 pre-built-template ads (no Gemini) + 20 product ads when the
+            // crawled site is an ecommerce shop.
+            new GenerateTemplateAdsJob($session->id),
+            new GenerateProductAdsJob($session->id),
             new GenerateAdImagePromptsJob($session->id),
             new GenerateAdImagesJob($session->id),
             // Finalizer: polls until every variant has HTML built, then

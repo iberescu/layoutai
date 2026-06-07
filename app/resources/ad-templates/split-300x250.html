@@ -1,0 +1,27 @@
+<!doctype html><html><head><meta charset="utf-8">{{fonts_link}}
+<style>
+  html,body{margin:0}
+  .ad{position:relative;width:{{w}}px;height:{{h}}px;overflow:hidden;display:flex;
+      font-family:{{body_font}};background:{{secondary}};}
+  .panel{flex:0 0 40%;{{hero_css}}}
+  .copy{flex:1;background:{{primary}};color:{{on_primary}};padding:16px 15px;display:flex;
+        flex-direction:column;justify-content:center;}
+  .logo{display:inline-block;background:{{chip_bg}};border-radius:6px;padding:4px 6px;margin-bottom:10px;align-self:flex-start;}
+  .logo img{display:block;height:16px;width:auto;max-width:90px;}
+  .headline{font-family:{{headline_font}};font-weight:800;font-size:21px;line-height:1.06;
+            letter-spacing:-.01em;margin:0 0 7px;overflow-wrap:anywhere;
+            display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
+  .sub{font-size:12px;opacity:.92;margin-bottom:12px;line-height:1.3;
+       display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
+  .cta{align-self:flex-start;background:{{on_primary}};color:{{primary}};font-weight:700;
+       font-size:12px;padding:8px 14px;border-radius:999px;}
+</style></head>
+<body><div class="ad">
+  <div class="panel"></div>
+  <div class="copy">
+    {{logo_block}}
+    <div class="headline">{{headline}}</div>
+    {{sub_block}}
+    <span class="cta">{{cta}}</span>
+  </div>
+</div></body></html>

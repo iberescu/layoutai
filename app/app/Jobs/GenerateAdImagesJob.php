@@ -31,7 +31,11 @@ class GenerateAdImagesJob implements ShouldQueue
         $session = OnboardingSession::findOrFail($this->onboardingSessionId);
         $session->setStep('images', 'in_progress');
 
+        // Template + product ads already carry finished HTML (built locally by
+        // TemplateAdRenderer) — exclude them so we don't fetch images or
+        // overwrite their HTML with a Gemini build.
         $variants = AdVariant::whereHas('campaign', fn ($q) => $q->where('brand_profile_id', $session->brand_profile_id))
+            ->whereNotIn('source_type', ['template', 'product'])
             ->whereDoesntHave('image')
             ->get(['id', 'style']);
 

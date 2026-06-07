@@ -1,0 +1,25 @@
+<!doctype html><html><head><meta charset="utf-8">{{fonts_link}}
+<style>
+  html,body{margin:0}
+  .ad{position:relative;width:{{w}}px;height:{{h}}px;overflow:hidden;font-family:{{body_font}};
+      background:{{secondary}};color:#fff;display:flex;flex-direction:column;justify-content:center;padding:28px 24px;}
+  .ad:before{content:"";position:absolute;left:0;top:0;width:100%;height:8px;
+             background:linear-gradient(90deg,{{primary}},{{accent}});}
+  .logo{margin-bottom:22px;background:{{chip_bg}};border-radius:7px;padding:5px 8px;align-self:flex-start;}
+  .logo img{display:block;height:24px;width:auto;max-width:140px;}
+  .kicker{font-size:12px;letter-spacing:.18em;text-transform:uppercase;opacity:.7;margin-bottom:10px;}
+  .headline{font-family:{{headline_font}};font-weight:800;font-size:38px;line-height:1.02;
+            letter-spacing:-.02em;margin:0 0 14px;
+            display:-webkit-box;-webkit-line-clamp:6;-webkit-box-orient:vertical;overflow:hidden;}
+  .sub{font-size:15px;opacity:.85;line-height:1.4;
+       display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden;}
+  .cta{margin-top:24px;align-self:flex-start;text-align:center;background:{{primary}};color:{{on_primary}};
+       font-weight:700;font-size:15px;padding:14px 28px;border-radius:8px;}
+</style></head>
+<body><div class="ad">
+  {{logo_block}}
+  <div class="kicker">{{company}}</div>
+  <div class="headline">{{headline}}</div>
+  {{sub_block}}
+  <span class="cta">{{cta}}</span>
+</div></body></html>
