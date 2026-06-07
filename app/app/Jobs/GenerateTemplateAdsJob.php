@@ -139,10 +139,13 @@ class GenerateTemplateAdsJob implements ShouldQueue
     private function logoUrl(BrandProfile $brand): ?string
     {
         try {
-            return $brand->logoAsset?->url();
+            if ($u = $brand->logoAsset?->url()) {
+                return $u;
+            }
         } catch (\Throwable) {
-            return null;
+            // fall through
         }
+        return $brand->visual_identity_json['logo_url'] ?? null;
     }
 
     /**
@@ -154,33 +157,39 @@ class GenerateTemplateAdsJob implements ShouldQueue
     private function copyPool(BrandProfile $brand): array
     {
         $company  = trim((string) $brand->company_name) ?: 'our brand';
-        $industry = trim((string) $brand->industry);
-        $desc     = trim((string) $brand->description);
+        $industry = $this->sane(trim((string) $brand->industry));
+        $desc     = $this->sane(trim((string) $brand->description));
         $proofs   = array_values(array_filter(array_map(
-            fn ($p) => is_string($p) ? trim($p) : (is_array($p) ? trim((string) ($p['text'] ?? $p['label'] ?? '')) : ''),
+            fn ($p) => $this->sane(is_string($p) ? trim($p) : (is_array($p) ? trim((string) ($p['text'] ?? $p['label'] ?? '')) : '')),
             (array) $brand->proof_points_json
         )));
 
+        // Headlines: SHORT, punchy lines first (brand-name + evergreen + short
+        // proofs). The description is a sentence — it belongs in the sub, not
+        // the headline, or it gets truncated mid-word.
+        $shortProofs = array_filter($proofs, fn ($p) => mb_strlen($p) <= 38);
         $headlines = array_values(array_unique(array_filter(array_merge(
-            $proofs,
             [
-                $this->firstSentence($desc),
                 "Meet {$company}",
-                "Discover {$company}",
                 $industry ? Str::ucfirst($industry) . ', done right' : '',
                 'Designed around you',
                 'Made to last',
+            ],
+            $shortProofs,
+            [
+                "Discover {$company}",
                 'The smarter choice',
-                "Why people choose {$company}",
+                'Quality you can feel',
             ]
         ))));
 
+        // Subs: the description (sane) + proofs + brand line + evergreen.
         $subs = array_values(array_unique(array_filter(array_merge(
             [
-                $this->clip($desc, 90),
+                $desc ? $this->clip($desc, 96) : '',
                 $industry && $company ? "{$company} — {$industry}." : '',
             ],
-            array_map(fn ($p) => $this->clip($p, 90), array_slice($proofs, 0, 4)),
+            array_map(fn ($p) => $this->clip($p, 96), array_slice($proofs, 0, 4)),
             ['Crafted for everyday life.', 'Trusted by people like you.']
         ))));
 
@@ -218,7 +227,9 @@ class GenerateTemplateAdsJob implements ShouldQueue
             fn ($c) => is_string($c) ? trim($c) : '',
             (array) $brand->ctas_json
         )));
-        return $ctas ?: ['Learn more', 'Discover more', 'Get started', 'Shop now'];
+        // Fallback must NOT include "Shop now" — template ads run for non-shops
+        // too, where a shopping CTA is off-tone. Product ads use Shop/Buy now.
+        return $ctas ?: ['Learn more', 'Discover more', 'Get started', 'See how'];
     }
 
     private function ctaFor(array $tpl, array $ctas, int $i): string
@@ -231,16 +242,39 @@ class GenerateTemplateAdsJob implements ShouldQueue
         return $cta;
     }
 
-    private function firstSentence(string $text): string
+    /**
+     * Reject low-quality / hedging model output so it never becomes ad copy
+     * (e.g. "Patagonia is a company that appears to offer products, though its
+     * website is..."). Returns '' for junk so callers filter it out.
+     */
+    private function sane(string $text): string
     {
-        if ($text === '') return '';
-        $s = preg_split('/(?<=[.!?])\s+/', $text)[0] ?? $text;
-        return $this->clip($s, 60);
+        $t = trim($text);
+        if ($t === '') return '';
+        $low = mb_strtolower($t);
+        foreach ([
+            'appears to', 'does not', 'the website', 'this website', 'i cannot', "i'm sorry",
+            'unable to', 'no information', 'not specify', 'as an ai', 'content does not',
+            'cannot determine', 'i do not', 'unknown', 'n/a', 'lorem ipsum', 'undefined',
+            'no primary', 'no accent', 'is a company that',
+        ] as $bad) {
+            if (str_contains($low, $bad)) return '';
+        }
+        return $t;
     }
 
     private function clip(string $text, int $max): string
     {
         $text = trim($text);
-        return mb_strlen($text) > $max ? rtrim(mb_substr($text, 0, $max - 1)) . '…' : $text;
+        if (mb_strlen($text) <= $max) {
+            return $text;
+        }
+        // Break on a word boundary, not mid-word.
+        $cut = mb_substr($text, 0, $max - 1);
+        $sp  = mb_strrpos($cut, ' ');
+        if ($sp !== false && $sp >= $max * 0.6) {
+            $cut = mb_substr($cut, 0, $sp);
+        }
+        return rtrim($cut, " ,.;:—-") . '…';
     }
 }

@@ -67,9 +67,13 @@ class TemplateAdRenderer
         $w = (int) $tpl['width'];
         $h = (int) $tpl['height'];
 
-        $primary   = $this->hex($brand->primaryColor(), '#2563EB');
-        $accent    = $this->hex($brand->accentColor(), '#7C3AED');
-        $secondary = $this->hex($brand->secondaryColor(), '#0F172A');
+        // When the brand's colors are missing/invalid (e.g. Gemini returned a
+        // sentence instead of a hex), fall back to a colour seeded from the
+        // brand's identity so each brand still looks distinct + intentional —
+        // not a shared default blue.
+        $primary   = $this->hex($brand->primaryColor(), $this->seededColor($brand, 0));
+        $accent    = $this->hex($brand->accentColor(), $this->seededColor($brand, 42));
+        $secondary = $this->hex($brand->secondaryColor(), '#0B1220');
 
         $logoUrl  = $content['logo_url'] ?? $this->logoUrl($brand);
         $imageUrl = $content['image_url'] ?? null;
@@ -169,10 +173,35 @@ class TemplateAdRenderer
     private function logoUrl(BrandProfile $brand): ?string
     {
         try {
-            return $brand->logoAsset?->url();
+            $uploaded = $brand->logoAsset?->url();
+            if ($uploaded) {
+                return $uploaded;
+            }
         } catch (\Throwable) {
-            return null;
+            // fall through to crawl-extracted logo
         }
+        // Crawl-extracted brand logo (BrandLogoExtractor), if any.
+        return $brand->visual_identity_json['logo_url'] ?? null;
+    }
+
+    /** A stable, vivid brand colour seeded from the brand identity (+hue shift). */
+    private function seededColor(BrandProfile $brand, int $shift): string
+    {
+        $seed = (string) ($brand->company_name ?: $brand->website_url ?: 'brand');
+        $hue  = (int) ((hexdec(substr(md5($seed), 0, 2)) / 255 * 360) + $shift) % 360;
+        return $this->hslHex($hue, 0.58, 0.46);
+    }
+
+    private function hslHex(float $h, float $s, float $l): string
+    {
+        $c = (1 - abs(2 * $l - 1)) * $s;
+        $x = $c * (1 - abs(fmod($h / 60, 2) - 1));
+        $m = $l - $c / 2;
+        [$r, $g, $b] = match (true) {
+            $h < 60  => [$c, $x, 0], $h < 120 => [$x, $c, 0], $h < 180 => [0, $c, $x],
+            $h < 240 => [0, $x, $c], $h < 300 => [$x, 0, $c], default => [$c, 0, $x],
+        };
+        return sprintf('#%02X%02X%02X', (int) round(($r + $m) * 255), (int) round(($g + $m) * 255), (int) round(($b + $m) * 255));
     }
 
     private function hex(?string $value, string $fallback): string

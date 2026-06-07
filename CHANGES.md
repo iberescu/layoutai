@@ -120,6 +120,21 @@ The initial ad set is no longer 30 Gemini-authored ads:
   Gemini-vision rubric (best-of-N rounds). `php artisan templates:test-brands`
   does the same against real brand sites (real colors/fonts/logos/images).
   Used to iterate the 20 templates to ≥82/100 before shipping.
+- **Brand logo on every ad.** `BrandLogoExtractor` pulls the brand mark off
+  the site (apple-touch-icon → og:logo → header logo `<img>` → sized icon →
+  conventional `/apple-touch-icon.png`) when no logo was uploaded, stored on
+  `visual_identity_json.logo_url`. Template **and** product ads render it (the
+  adaptive chip keeps it legible on any background).
+- **QA hardening (from a 20-brand workflow test).** Product ads now: clean
+  titles only (reject image-descriptions / "Spinner" / sentences → safe brand
+  copy), images verified loadable before use (probe; substitute a harvested
+  photo when a scraped image 404s/blocks), and junk images filtered (store/app
+  badges, spinners, sprites, plus an aspect-ratio reject for banner-shaped
+  images). Template copy is sanitised (hedging model output dropped; headlines
+  kept short with word-boundary clamping; the description moves to the sub) and
+  the non-shop CTA fallback no longer says "Shop now". Brands whose Gemini
+  colours came back invalid now fall back to a brand-seeded colour, not a
+  shared default blue.
 - **Schema**: `brand_profiles.fonts_json`, `is_ecommerce`,
   `ecommerce_platform`. New `AdVariant.source_type` values `template` /
   `product` (+ matching campaign-grid badges).

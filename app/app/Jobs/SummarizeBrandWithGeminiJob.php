@@ -10,6 +10,7 @@ use App\Models\CrawlPage;
 use App\Models\OnboardingSession;
 use App\Models\UploadedAsset;
 use App\Services\BrandImageHarvester;
+use App\Services\BrandLogoExtractor;
 use App\Services\EcommerceDetector;
 use App\Services\FontMatchingService;
 use App\Services\GeminiBrandAndAdsService;
@@ -42,7 +43,7 @@ class SummarizeBrandWithGeminiJob implements ShouldQueue
         $this->onQueue('ai');
     }
 
-    public function handle(GeminiBrandAndAdsService $service, NewsEventService $events, BrandImageHarvester $imageHarvester, ImageFocalService $focal, FontMatchingService $fonts, EcommerceDetector $ecomDetector): void
+    public function handle(GeminiBrandAndAdsService $service, NewsEventService $events, BrandImageHarvester $imageHarvester, ImageFocalService $focal, FontMatchingService $fonts, EcommerceDetector $ecomDetector, BrandLogoExtractor $logoExtractor): void
     {
         $session = OnboardingSession::findOrFail($this->onboardingSessionId);
         $session->setStep('summarize_brand', 'in_progress');
@@ -110,6 +111,21 @@ class SummarizeBrandWithGeminiJob implements ShouldQueue
             'is_ecommerce'       => $ecom['is_ecommerce'],
             'ecommerce_platform' => $ecom['platform'],
         ]);
+
+        // If the user didn't upload a logo, pull the brand's logo off the site
+        // so template + product ads still carry the brand mark.
+        if (! $brand->logo_asset_id) {
+            try {
+                $logoUrl = $logoExtractor->extract($brand->website_url);
+                if ($logoUrl) {
+                    $vi = $brand->visual_identity_json ?: [];
+                    $vi['logo_url'] = $logoUrl;
+                    $brand->update(['visual_identity_json' => $vi]);
+                }
+            } catch (\Throwable $e) {
+                \Log::info('Logo extraction skipped: ' . $e->getMessage());
+            }
+        }
 
         // Match the brand's typefaces to the closest Google Fonts so template
         // ads render with on-brand typography (best-effort — never blocks).

@@ -32,6 +32,16 @@ class BrandImageHarvester
     private const SKIP_PATH_KEYWORDS = [
         'logo', 'favicon', 'icon', 'sprite', 'avatar', 'thumb-', 'pixel.gif',
         '1x1', 'spacer', 'placeholder', 'loader', 'tracking',
+        // loading-state graphics + app-store / payment badges that look like
+        // products but aren't (surfaced by the 20-brand QA run).
+        'spinner', 'loading', 'lazy', 'skeleton', 'app-store', 'appstore',
+        'app_store', 'google-play', 'googleplay', 'play.google', 'badge',
+        'qr-', 'qrcode', 'apple-pay', 'paypal',
+    ];
+
+    /** Alt-text tokens that signal a non-product graphic (badge/spinner/etc.). */
+    private const SKIP_ALT_KEYWORDS = [
+        'spinner', 'loading', 'app store', 'google play', 'download on', 'get it on', 'badge',
     ];
 
     /**
@@ -107,6 +117,10 @@ class BrandImageHarvester
                 $u = (string) $img['url'];
                 if (isset($seen[$u])) continue;
                 if ($this->shouldSkip($u)) continue;
+                $alt = isset($img['alt']) ? strtolower((string) $img['alt']) : '';
+                foreach (self::SKIP_ALT_KEYWORDS as $kw) {
+                    if ($alt !== '' && str_contains($alt, $kw)) { continue 2; }
+                }
                 $seen[$u] = true;
                 $out[] = [
                     'url'    => $u,
@@ -213,6 +227,12 @@ class BrandImageHarvester
         // Drop anything smaller than the floor or with no readable dims.
         if (! $c['w'] || ! $c['h']) return null;
         if ($c['w'] < self::MIN_WIDTH || $c['h'] < self::MIN_HEIGHT) return null;
+
+        // Drop extreme aspect ratios — long banners and app-store/payment
+        // badges (very wide) or column dividers (very tall) crop to garbage in
+        // an ad slot and aren't real product/hero photos.
+        $ratio = $c['w'] / max(1, $c['h']);
+        if ($ratio > 3.0 || $ratio < 0.33) return null;
 
         $c['bytes']  = $fullBytes;
         $c['ratio']  = round($c['w'] / max(1, $c['h']), 3);
