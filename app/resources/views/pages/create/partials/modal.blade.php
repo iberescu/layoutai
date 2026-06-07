@@ -9,8 +9,13 @@
             @csrf
             <div>
                 <label class="block text-sm font-medium mb-1.5">Website URL</label>
-                <input x-model="websiteUrl" type="url" required name="website_url"
-                       placeholder="https://yourbusiness.com"
+                {{-- type="text" not "url": the browser's native validator rejects
+                     `usr.ro` (no scheme), and our backend already handles scheme
+                     defaulting + www/scheme variant probing. inputmode=url still
+                     gives mobile users the URL keyboard. --}}
+                <input x-model="websiteUrl" type="text" inputmode="url" required name="website_url"
+                       autocomplete="url" spellcheck="false"
+                       placeholder="yourbusiness.com"
                        class="w-full rounded-xl border-line focus:ring-primary focus:border-primary">
             </div>
             <div>

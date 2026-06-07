@@ -7,9 +7,12 @@ use App\Models\Campaign;
 
 class GeminiAdService
 {
+    // 728x90 dropped — Gemini's copy consistently overflows that narrow
+    // 90px height with the headline + sub + CTA we need.
+    // 320x50 dropped — same issue, even tighter on the small mobile banner.
     public const DEFAULT_SIZES = [
-        ['300', 250], ['336', 280], ['728', 90], ['970', 250],
-        ['160', 600], ['300', 600], ['320', 50], ['320', 100],
+        ['300', 250], ['336', 280], ['970', 250],
+        ['160', 600], ['300', 600], ['320', 100],
         ['468', 60], ['250', 250],
     ];
 
@@ -44,7 +47,7 @@ BRAND CONTEXT:
 
 REQUIREMENTS:
 - 70% brand ads, 30% event/location-aware ads (when events given).
-- Distribute across sizes 300x250, 336x280, 728x90, 970x250, 160x600, 300x600, 320x50, 320x100, 468x60, 250x250.
+- Distribute across sizes 300x250, 336x280, 970x250, 160x600, 300x600, 320x100, 468x60, 250x250.
 - Each concept must include: concept, ad_type ("brand" or "event"), size {width,height},
   headline, subheadline, body, cta, visual_direction, image_prompt, layout_type.
 - image_prompt MUST end with: "no text, no logo, no watermark".

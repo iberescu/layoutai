@@ -8,7 +8,7 @@
 #
 # Requires:
 #   - DIGITALOCEAN_TOKEN in .env (host machine, gitignored)
-#   - All other tokens (GEMINI_API_KEY, CLOUDFLARE_*, REPLICATE_*) in .env
+#   - All other tokens (GEMINI_API_KEY, CLOUDFLARE_*) in .env
 #   - An SSH key on your DO account (deploy.sh picks the first one)
 #   - Local SSH client with the matching private key
 
@@ -88,7 +88,7 @@ cat > deploy/.env.prod <<EOF
 APP_ENV=production
 APP_DEBUG=false
 APP_KEY=$APP_KEY
-APP_URL=http://$DROPLET_IP
+APP_URL=${LAYOUTAI_APP_URL:-https://layout.ai}
 LOG_CHANNEL=stderr
 LOG_LEVEL=info
 
@@ -114,13 +114,9 @@ CLOUDFLARE_ACCOUNT_ID=$(grep -E '^CLOUDFLARE_ACCOUNT_ID=' .env | cut -d= -f2-)
 RUNMYPRINT_ENDPOINT=https://www.runmyprint.com/test/image2.php
 RENDERER_URL=http://renderer:3000
 
-CREATIVE_SCORING_PROVIDER=$(grep -E '^CREATIVE_SCORING_PROVIDER=' .env | cut -d= -f2- | sed 's/^$/mock/')
-REPLICATE_API_TOKEN=$(grep -E '^REPLICATE_API_TOKEN=' .env | cut -d= -f2-)
-REPLICATE_TRIBE_MODEL=$(grep -E '^REPLICATE_TRIBE_MODEL=' .env | cut -d= -f2-)
-REPLICATE_TRIBE_DEPLOYMENT=$(grep -E '^REPLICATE_TRIBE_DEPLOYMENT=' .env | cut -d= -f2-)
 EOF
 # Strip any CRLF carryover from a Windows-edited deploy.sh — Gemini and
-# Replicate both reject API tokens that have a trailing \r.
+# Cloudflare both reject API tokens that have a trailing \r.
 sed -i 's/\r$//' deploy/.env.prod
 
 # --- rsync code + deploy directory --------------------------------------------

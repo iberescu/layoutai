@@ -10,8 +10,16 @@ class NewsEventService
     public function eligibleFor(string $location, float $maxRisk = 0.4, int $limit = 10): array
     {
         $events = NewsEventHook::query()
-            ->when($location, fn ($q) => $q->where('location', $location)->orWhereNull('location'))
+            // Match user's location OR location-agnostic hooks (market, tech, etc.).
+            ->where(function ($w) use ($location) {
+                if ($location) {
+                    $w->where('location', $location)->orWhereNull('location');
+                } else {
+                    $w->whereNull('location');
+                }
+            })
             ->where('risk_score', '<=', $maxRisk)
+            ->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()))
             ->orderByDesc('relevance_score')
             ->limit($limit)
             ->get();
@@ -23,12 +31,14 @@ class NewsEventService
         return $events->map(fn ($e) => [
             'title'             => $e->title,
             'type'              => $e->type,
+            'source'            => $e->source,
             'location'          => $e->location,
             'date'              => $e->date?->toDateString(),
             'relevance_score'   => (float) $e->relevance_score,
             'risk_score'        => (float) $e->risk_score,
             'recommended_angle' => $e->recommended_angle,
             'avoid'             => $e->avoid ?? [],
+            'meta'              => $e->meta ?? [],
         ])->all();
     }
 

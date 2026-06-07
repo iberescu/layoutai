@@ -37,7 +37,13 @@ class GenerateAdImageJob implements ShouldQueue
                 ?? 'modern editorial product photograph, premium commercial style, no text, no logo, no watermark';
             $images->generateForVariant($variant, $prompt);
         }
-        // HTML is built in batches dispatched from GenerateAdImagesJob — those
-        // jobs poll until each variant's image is ready, so we don't chain here.
+
+        // Fire the single-variant HTML build the moment the image is ready,
+        // instead of waiting for the batched build job to poll on a 3s tick.
+        // Shaves 5-20s off full completion. (The batch job in GenerateAdImagesJob
+        // is still there as a safety net.) Skip if HTML already exists.
+        if (! $variant->fresh()->html) {
+            BuildAdHtmlJob::dispatch($this->variantId);
+        }
     }
 }

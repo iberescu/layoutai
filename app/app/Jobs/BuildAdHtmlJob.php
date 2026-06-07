@@ -47,11 +47,8 @@ class BuildAdHtmlJob implements ShouldQueue
             'css'  => $built['css'] ?? '',
         ]);
 
-        // PNG render skipped on critical path — frontend uses the HTML
-        // directly via <iframe srcdoc>. Re-enable when PNG export ships:
-        // RenderAdJob::dispatch($variant->id);
-
-        // Score with TRIBE v2 (or mock) right after the HTML lands.
-        ScoreAdVariantJob::dispatch($variant->id)->delay(now()->addSeconds(2));
+        // PNG render + scoring both run later (the templates finalizer
+        // sweeps unscored variants after preview_ready). Keeping this job
+        // light makes the per-variant fallback path return in milliseconds.
     }
 }

@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Models\AdImage;
 use App\Models\AdVariant;
+use Illuminate\Contracts\Cache\LockTimeoutException;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -16,26 +18,64 @@ class AdImageGenerationService
         $clean = $this->cleanPrompt($prompt);
         $hash  = hash('sha256', $clean);
 
-        $existing = AdImage::where('prompt_hash', $hash)->whereNotNull('stored_url')->first();
-        if ($existing && $this->storedFileExists($existing->stored_url)) {
-            $image = $variant->image()->create([
-                'prompt'          => $clean,
-                'prompt_hash'     => $hash,
-                'source_url'      => $existing->source_url,
-                'stored_url'      => $existing->stored_url,
-                'status'          => 'reused',
-                'width'           => $existing->width,
-                'height'          => $existing->height,
-                'file_size_bytes' => $existing->file_size_bytes,
-            ]);
-            return $image;
-        }
-        // Cache hit pointed at a ghost file (e.g. after a volume recreate).
-        // Drop it so we re-fetch fresh.
-        if ($existing) {
-            Log::info("AdImage cache hit but file missing — re-fetching for hash {$hash}");
+        // Cheap path: another worker already produced an AdImage for this
+        // prompt — reuse the stored bytes + crop hints.
+        $reused = $this->reuseExisting($variant, $clean, $hash);
+        if ($reused) return $reused;
+
+        // Per-prompt lock: when ~24 AI-image variants collapse onto 10 distinct
+        // prompts, multiple workers will race to fetch the same prompt. The
+        // lock serialises them — first worker fetches, the rest block here
+        // and then take the cache-hit path below once it lands.
+        $lock = Cache::lock('ad-image-fetch:' . $hash, 120);
+        try {
+            $lock->block(100); // wait up to 100s for the holder to finish
+        } catch (LockTimeoutException) {
+            // Couldn't acquire — fall through and fetch ourselves rather than
+            // fail the variant. Duplicate fetches are wasteful but recoverable.
+            Log::info("AdImage lock timeout for {$hash}; fetching anyway");
         }
 
+        try {
+            // Re-check after the lock — the holder likely just finished.
+            $reused = $this->reuseExisting($variant, $clean, $hash);
+            if ($reused) return $reused;
+
+            return $this->fetchAndStore($variant, $clean, $hash);
+        } finally {
+            optional($lock)->release();
+        }
+    }
+
+    /**
+     * Look up an existing AdImage by prompt_hash and clone it onto $variant.
+     * Returns null if no usable cache row exists.
+     */
+    private function reuseExisting(AdVariant $variant, string $clean, string $hash): ?AdImage
+    {
+        $existing = AdImage::where('prompt_hash', $hash)->whereNotNull('stored_url')->first();
+        if (! $existing || ! $this->storedFileExists($existing->stored_url)) {
+            if ($existing) {
+                Log::info("AdImage cache hit but file missing — re-fetching for hash {$hash}");
+            }
+            return null;
+        }
+        return $variant->image()->create([
+            'prompt'          => $clean,
+            'prompt_hash'     => $hash,
+            'source_url'      => $existing->source_url,
+            'stored_url'      => $existing->stored_url,
+            'focal_x'         => $existing->focal_x,
+            'focal_y'         => $existing->focal_y,
+            'status'          => 'reused',
+            'width'           => $existing->width,
+            'height'          => $existing->height,
+            'file_size_bytes' => $existing->file_size_bytes,
+        ]);
+    }
+
+    private function fetchAndStore(AdVariant $variant, string $clean, string $hash): AdImage
+    {
         $endpoint = (string) config('services.runmyprint.endpoint');
         $url = $endpoint . '?' . http_build_query(['prompt' => $clean]);
 
@@ -53,6 +93,10 @@ class AdImageGenerationService
             Storage::disk(config('filesystems.default', 'public'))->put($path, $response->body());
             $stored = Storage::disk(config('filesystems.default', 'public'))->url($path);
 
+            // Smartcrop focal computation is NOT applied to runmyprint AI
+            // images — they're already centrally composed (the model frames
+            // its subject around the canvas centre). Focal is reserved for
+            // harvested brand-website photos where composition varies.
             return $variant->image()->create([
                 'prompt'          => $clean,
                 'prompt_hash'     => $hash,

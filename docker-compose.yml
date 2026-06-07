@@ -31,10 +31,6 @@ services:
       CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN:-}
       RUNMYPRINT_ENDPOINT: ${RUNMYPRINT_ENDPOINT:-https://www.runmyprint.com/test/image2.php}
       RENDERER_URL: http://renderer:3000
-      CREATIVE_SCORING_PROVIDER: ${CREATIVE_SCORING_PROVIDER:-mock}
-      REPLICATE_API_TOKEN: ${REPLICATE_API_TOKEN:-}
-      REPLICATE_TRIBE_MODEL: ${REPLICATE_TRIBE_MODEL:-}
-      REPLICATE_TRIBE_DEPLOYMENT: ${REPLICATE_TRIBE_DEPLOYMENT:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -114,10 +110,6 @@ services:
       CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN:-}
       RUNMYPRINT_ENDPOINT: ${RUNMYPRINT_ENDPOINT:-https://www.runmyprint.com/test/image2.php}
       RENDERER_URL: http://renderer:3000
-      CREATIVE_SCORING_PROVIDER: ${CREATIVE_SCORING_PROVIDER:-mock}
-      REPLICATE_API_TOKEN: ${REPLICATE_API_TOKEN:-}
-      REPLICATE_TRIBE_MODEL: ${REPLICATE_TRIBE_MODEL:-}
-      REPLICATE_TRIBE_DEPLOYMENT: ${REPLICATE_TRIBE_DEPLOYMENT:-}
     depends_on:
       app:
         condition: service_started
@@ -171,10 +163,6 @@ services:
       CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN:-}
       RUNMYPRINT_ENDPOINT: ${RUNMYPRINT_ENDPOINT:-https://www.runmyprint.com/test/image2.php}
       RENDERER_URL: http://renderer:3000
-      CREATIVE_SCORING_PROVIDER: ${CREATIVE_SCORING_PROVIDER:-mock}
-      REPLICATE_API_TOKEN: ${REPLICATE_API_TOKEN:-}
-      REPLICATE_TRIBE_MODEL: ${REPLICATE_TRIBE_MODEL:-}
-      REPLICATE_TRIBE_DEPLOYMENT: ${REPLICATE_TRIBE_DEPLOYMENT:-}
     depends_on:
       postgres:
         condition: service_healthy

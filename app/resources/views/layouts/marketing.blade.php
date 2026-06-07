@@ -71,5 +71,6 @@
         </div>
     </footer>
 
+    <x-support-chat />
 </body>
 </html>

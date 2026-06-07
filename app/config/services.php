@@ -38,7 +38,10 @@ return [
     'gemini' => [
         'api_key'        => env('GEMINI_API_KEY'),
         'model'          => env('GEMINI_MODEL', 'gemini-2.5-flash'),
+        // Concepts call (30 ads in one response) — heavier, uses 3.5-flash.
         'combined_model' => env('GEMINI_COMBINED_MODEL', 'gemini-3.5-flash'),
+        // Brand summary — 7 lean fields, runs on the lighter/faster 2.5-flash.
+        'brand_model'    => env('GEMINI_BRAND_MODEL', 'gemini-2.5-flash'),
         'base'           => env('GEMINI_BASE', 'https://generativelanguage.googleapis.com/v1beta'),
     ],
 
@@ -57,19 +60,20 @@ return [
         'internal_url' => env('INTERNAL_PUBLIC_URL', 'http://nginx'),
     ],
 
-    // Creative scoring (TRIBE v2 by default, runs on a hosted GPU).
-    // provider: 'replicate' | 'mock'   ('mock' = deterministic offline score)
-    'creative_scoring' => [
-        'provider'             => env('CREATIVE_SCORING_PROVIDER', 'mock'),
-        'replicate_token'      => env('REPLICATE_API_TOKEN'),
-        // Two ways to point at a model on Replicate:
-        //   1. REPLICATE_TRIBE_MODEL=owner/name:version_hash → direct prediction
-        //      on the model (one replica, autoscaled by Replicate's allocator).
-        //   2. REPLICATE_TRIBE_DEPLOYMENT=owner/deployment → uses our deployment,
-        //      which has explicit max_instances control + faster autoscale-up.
-        // Deployment takes precedence when set.
-        'replicate_model'      => env('REPLICATE_TRIBE_MODEL'),
-        'replicate_deployment' => env('REPLICATE_TRIBE_DEPLOYMENT'),
+    // Support chat. Provider switch decides which widget the
+    // <x-support-chat /> Blade component renders.
+    //   - 'inapp'  : (default) self-hosted bubble + form, no external cost
+    //   - 'zendesk': Zendesk Web Widget (paid after trial)
+    //   - 'tawk'   : Tawk.to widget (free)
+    'support' => [
+        'provider'          => env('SUPPORT_PROVIDER', 'inapp'),
+        'zendesk_key'       => env('SUPPORT_ZENDESK_KEY'),
+        'tawk_property_id'  => env('SUPPORT_TAWK_PROPERTY_ID'),
+        'tawk_widget_id'    => env('SUPPORT_TAWK_WIDGET_ID', 'default'),
+        // Every incoming chat message is forwarded to this address (queued).
+        // Falls back to MAIL_FROM_ADDRESS if unset. Default is hello@layout.ai
+        // for the env example; the real recipient is set per-deploy.
+        'notify_email'      => env('SUPPORT_NOTIFY_EMAIL', 'iberescu@gmail.com'),
     ],
 
 ];

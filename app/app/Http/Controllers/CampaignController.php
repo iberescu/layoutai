@@ -24,8 +24,10 @@ class CampaignController extends Controller
             [$w, $h] = explode('x', $size);
             $query->where('size_width', (int) $w)->where('size_height', (int) $h);
         }
+        if ($style = $request->string('style')->toString()) {
+            $query->where('style', $style);
+        }
 
-        // Sort: 'score' = highest creative score first (nulls last); else id.
         $sort = $request->string('sort')->toString();
         if ($sort === 'score') {
             $query->orderByRaw('creative_score DESC NULLS LAST')->orderBy('id');

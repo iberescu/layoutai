@@ -9,6 +9,8 @@ use App\Jobs\GenerateAdImagePromptsJob;
 use App\Jobs\GenerateAdImagesJob;
 use App\Jobs\GenerateAdTemplatesJob;
 use App\Jobs\SummarizeBrandWithGeminiJob;
+use App\Mail\GettingStartedEmail;
+use App\Mail\WelcomeEmail;
 use App\Models\AdVariant;
 use App\Models\Campaign;
 use App\Models\OnboardingSession;
@@ -21,6 +23,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -29,6 +33,15 @@ class OnboardingController extends Controller
 {
     public function start(Request $request, CreateOnboardingSession $action): JsonResponse
     {
+        // Pre-normalise the URL so users typing `usr.ro` (no scheme) don't trip
+        // the 'url' validator. The action defaults the scheme to https.
+        if (is_string($raw = $request->input('website_url')) && $raw !== '') {
+            $raw = trim($raw);
+            if (! preg_match('#^[a-z][a-z0-9+.\-]*://#i', $raw)) {
+                $request->merge(['website_url' => 'https://' . ltrim($raw, '/')]);
+            }
+        }
+
         $data = $request->validate([
             'website_url'       => ['required', 'url', 'max:2048'],
             'business_location' => ['nullable', 'string', 'max:255'],
@@ -70,6 +83,7 @@ class OnboardingController extends Controller
             'status'   => $session->status,
             'steps'    => $session->steps ?? [],
             'progress' => $session->progressFraction(),
+            'error'    => $session->error,
         ]);
     }
 
@@ -183,6 +197,22 @@ class OnboardingController extends Controller
 
             Auth::login($user);
         });
+
+        // Lifecycle emails. Welcome fires immediately, getting-started waits an
+        // hour so the user has a chance to poke around the dashboard first
+        // (and so the inbox doesn't get two emails back-to-back). Both queued.
+        try {
+            $fresh = User::where('email', $data['email'])->first();
+            if ($fresh) {
+                Mail::to($fresh->email)->queue(new WelcomeEmail($fresh));
+                $fresh->update(['welcome_sent_at' => now()]);
+
+                Mail::to($fresh->email)->later(now()->addHour(), new GettingStartedEmail($fresh));
+                $fresh->update(['getting_started_sent_at' => now()]);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Lifecycle email dispatch failed: ' . $e->getMessage());
+        }
 
         return redirect()->route('dashboard')->with('status', 'Your $500 credit is ready.');
     }

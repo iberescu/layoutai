@@ -7,14 +7,15 @@ use Illuminate\Database\Eloquent\Model;
 class NewsEventHook extends Model
 {
     protected $fillable = [
-        'title', 'type', 'location', 'date',
+        'title', 'type', 'source', 'external_id', 'location', 'date', 'expires_at',
         'relevance_score', 'risk_score',
         'recommended_angle', 'avoid', 'meta',
     ];
 
     protected $casts = [
-        'date'  => 'date',
-        'avoid' => 'array',
-        'meta'  => 'array',
+        'date'       => 'date',
+        'expires_at' => 'datetime',
+        'avoid'      => 'array',
+        'meta'       => 'array',
     ];
 }

@@ -201,7 +201,7 @@ class CloudflareCrawler
                     'title'    => $title ?: $url,
                     'markdown' => $text,
                     'meta'     => [],
-                    'images'   => [],
+                    'images'   => $this->extractImages($html, $url),
                     'links'    => [],
                 ];
             } catch (\Throwable $e) {
@@ -220,6 +220,58 @@ class CloudflareCrawler
             return trim(html_entity_decode(strip_tags($m[1]), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
         }
         return null;
+    }
+
+    /**
+     * Pull image candidates from the HTML. Each entry carries the absolute
+     * URL + light hints (width/height/alt) when available, so the downstream
+     * harvester can rank them without a HEAD request per candidate.
+     *
+     * @return array<int,array{url:string, alt:?string, w:?int, h:?int, source:string}>
+     */
+    private function extractImages(string $html, string $pageUrl): array
+    {
+        $base = parse_url($pageUrl);
+        if (! $base || empty($base['host'])) {
+            return [];
+        }
+        $origin = ($base['scheme'] ?? 'https') . '://' . $base['host'];
+        $resolve = function (string $src) use ($origin, $base): ?string {
+            $src = trim($src);
+            if ($src === '' || str_starts_with($src, 'data:')) return null;
+            if (preg_match('#^https?://#i', $src)) return $src;
+            if (str_starts_with($src, '//')) return ($base['scheme'] ?? 'https') . ':' . $src;
+            if (str_starts_with($src, '/'))  return $origin . $src;
+            return $origin . '/' . ltrim($src, './');
+        };
+
+        $out = [];
+        $seen = [];
+
+        // og:image / twitter:image — usually the highest-quality hero image.
+        if (preg_match_all('#<meta[^>]+(?:property|name)=["\\\'](og:image(?::secure_url)?|twitter:image(?::src)?)["\\\'][^>]+content=["\\\']([^"\\\']+)["\\\']#i', $html, $m)) {
+            foreach ($m[2] as $src) {
+                $u = $resolve($src);
+                if ($u && ! isset($seen[$u])) { $seen[$u] = true; $out[] = ['url' => $u, 'alt' => null, 'w' => null, 'h' => null, 'source' => 'og']; }
+            }
+        }
+
+        // <img> tags. Skip data URIs, base64, and svg sprites.
+        if (preg_match_all('#<img\b([^>]+)>#is', $html, $m)) {
+            foreach ($m[1] as $attrs) {
+                if (! preg_match('#\bsrc=["\\\']([^"\\\']+)["\\\']#i', $attrs, $sm)) continue;
+                $u = $resolve($sm[1]);
+                if (! $u || isset($seen[$u])) continue;
+                $alt = (preg_match('#\balt=["\\\']([^"\\\']*)["\\\']#i', $attrs, $am)) ? $am[1] : null;
+                $w   = (preg_match('#\bwidth=["\\\']?(\d+)#i',  $attrs, $wm)) ? (int) $wm[1] : null;
+                $h   = (preg_match('#\bheight=["\\\']?(\d+)#i', $attrs, $hm)) ? (int) $hm[1] : null;
+                $seen[$u] = true;
+                $out[] = ['url' => $u, 'alt' => $alt, 'w' => $w, 'h' => $h, 'source' => 'img'];
+            }
+        }
+
+        // Cap at 60 candidates per page — the harvester does further filtering.
+        return array_slice($out, 0, 60);
     }
 
     private function htmlToText(string $html): string

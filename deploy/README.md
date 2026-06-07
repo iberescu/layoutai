@@ -87,10 +87,3 @@ The MVP deploy serves over plain HTTP on `:80`. To enable HTTPS:
 A more thorough setup uses Caddy or a sidecar `nginx-proxy + acme-companion`
 but for first-launch the manual certbot path is fine.
 
-## Replicate scoring on the deployed instance
-
-For TRIBE v2 scoring to work on production, the Replicate model fetches ad
-images via URL. Those URLs use `APP_URL`, which `deploy.sh` set to
-`http://<droplet-ip>`. That IS publicly reachable, so Replicate can fetch
-the images directly with no tunnel needed — set `REPLICATE_TRIBE_MODEL`
-in `.env` and `deploy.sh` will carry it through.

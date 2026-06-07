@@ -68,7 +68,7 @@ services:
 
   worker:
     image: layoutai/app:prod
-    command: ["php", "artisan", "queue:work", "--queue=high,crawl,render,image,ai,reporting,default", "--sleep=1", "--tries=3", "--timeout=800", "--memory=512"]
+    command: ["php", "artisan", "queue:work", "--queue=high,crawl,ai,render,image,reporting,default", "--sleep=1", "--tries=3", "--timeout=800", "--memory=512"]
     deploy:
       replicas: 8
     env_file: .env

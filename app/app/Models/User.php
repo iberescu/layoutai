@@ -17,6 +17,10 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'is_admin',
+        'welcome_sent_at',
+        'getting_started_sent_at',
+        'campaign_reminder_sent_at',
     ];
 
     protected $hidden = [
@@ -27,8 +31,12 @@ class User extends Authenticatable
     protected function casts(): array
     {
         return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
+            'email_verified_at'         => 'datetime',
+            'password'                  => 'hashed',
+            'is_admin'                  => 'boolean',
+            'welcome_sent_at'           => 'datetime',
+            'getting_started_sent_at'   => 'datetime',
+            'campaign_reminder_sent_at' => 'datetime',
         ];
     }
 

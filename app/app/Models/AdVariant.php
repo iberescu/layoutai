@@ -12,8 +12,8 @@ class AdVariant extends Model
     protected $fillable = [
         'campaign_id', 'concept_id', 'size_width', 'size_height',
         'headline', 'subheadline', 'body', 'cta', 'html', 'css',
-        'layout_type', 'status', 'source_type', 'news_event_id',
-        'policy_status', 'meta',
+        'layout_type', 'style', 'platform', 'status', 'source_type',
+        'news_event_id', 'policy_status', 'meta',
         'creative_score', 'creative_score_meta', 'creative_scored_at',
     ];
 

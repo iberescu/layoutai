@@ -31,22 +31,30 @@ class GenerateAdImagesJob implements ShouldQueue
         $session = OnboardingSession::findOrFail($this->onboardingSessionId);
         $session->setStep('images', 'in_progress');
 
-        $ids = AdVariant::whereHas('campaign', fn ($q) => $q->where('brand_profile_id', $session->brand_profile_id))
+        $variants = AdVariant::whereHas('campaign', fn ($q) => $q->where('brand_profile_id', $session->brand_profile_id))
             ->whereDoesntHave('image')
-            ->pluck('id');
+            ->get(['id', 'style']);
 
-        foreach ($ids as $id) {
+        // Showcase ads render entirely from inline SVG + CSS — no photo
+        // needed. Skip the runmyprint fetch for them so the HTML batch
+        // doesn't wait on an image that never arrives.
+        foreach ($variants->where('style', '!=', 'showcase')->pluck('id') as $id) {
             GenerateAdImageJob::dispatch($id);
         }
 
-        // Kick off HTML batches in parallel. Each batch waits ~3s and re-queues
-        // until its 5 images are ready — Gemini gets called once per 5 variants
-        // instead of once per variant.
-        foreach ($ids->chunk(5) as $chunk) {
+        // Chunk HTML batches BY STYLE so each Gemini call gets a homogeneous
+        // cohort (standard / creative / animated / social) and the style-
+        // specific directives in the prompt apply cleanly. Each batch waits
+        // ~6s and re-queues until its images are ready.
+        $batches = $variants
+            ->groupBy(fn (AdVariant $v) => $v->style ?: 'standard')
+            ->flatMap(fn ($group) => $group->pluck('id')->chunk(5));
+
+        foreach ($batches as $chunk) {
             BuildAdHtmlBatchJob::dispatch($chunk->values()->all())
                 ->delay(now()->addSeconds(6));
         }
 
-        $session->setStep('images', 'completed', ['count' => $ids->count()]);
+        $session->setStep('images', 'completed', ['count' => $variants->count()]);
     }
 }

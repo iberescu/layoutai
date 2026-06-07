@@ -17,7 +17,7 @@
         <p class="text-2xl font-bold mt-0.5" style="font-variant-numeric: tabular-nums;">{{ $total }}</p>
     </div>
     <div>
-        <p class="text-xs text-muted uppercase tracking-wide font-semibold">Scored by TRIBE v2</p>
+        <p class="text-xs text-muted uppercase tracking-wide font-semibold">Scored by Gemini</p>
         <p class="text-2xl font-bold mt-0.5" style="font-variant-numeric: tabular-nums;">
             {{ $scored }}
             <span class="text-base text-muted font-medium">/ {{ $total }}</span>
@@ -60,8 +60,21 @@
     </select>
     <select name="size" class="rounded-xl border-line text-sm">
         <option value="">All sizes</option>
-        @foreach(['300x250','336x280','728x90','970x250','160x600','300x600','320x50','320x100','468x60','250x250'] as $s)
-            <option value="{{ $s }}" @selected(request('size') === $s)>{{ $s }}</option>
+        <optgroup label="Display">
+            @foreach(['300x250','336x280','970x250','160x600','300x600','320x100','468x60','250x250'] as $s)
+                <option value="{{ $s }}" @selected(request('size') === $s)>{{ $s }}</option>
+            @endforeach
+        </optgroup>
+        <optgroup label="Social">
+            @foreach(['1080x1080','1080x1350','1080x1920','1200x630'] as $s)
+                <option value="{{ $s }}" @selected(request('size') === $s)>{{ $s }}</option>
+            @endforeach
+        </optgroup>
+    </select>
+    <select name="style" class="rounded-xl border-line text-sm">
+        <option value="">All styles</option>
+        @foreach(['standard' => 'Standard','animated' => 'Animated','creative' => 'Creative','social' => 'Social','showcase' => 'Showcase ★'] as $k => $v)
+            <option value="{{ $k }}" @selected(request('style') === $k)>{{ $v }}</option>
         @endforeach
     </select>
     <select name="sort" class="rounded-xl border-line text-sm">
@@ -78,22 +91,22 @@
 <div class="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4 [&_.tile]:mb-4">
     @foreach($variants as $i => $variant)
         @php
-            $score = $variant->creative_score !== null ? (float) $variant->creative_score : null;
-            // Color-code the score badge by quartile.
+            $score      = $variant->creative_score !== null ? (float) $variant->creative_score : null;
             $scoreColor = match(true) {
                 $score === null => null,
-                $score >= 75    => '#10B981', // success — top quartile
-                $score >= 50    => '#2563EB', // primary — mid-upper
-                $score >= 25    => '#F59E0B', // warning — mid-lower
-                default         => '#94A3B8', // muted — bottom quartile
+                $score >= 75    => '#10B981',
+                $score >= 50    => '#2563EB',
+                $score >= 25    => '#F59E0B',
+                default         => '#94A3B8',
             };
+            $rationale = $variant->creative_score_meta['rationale'] ?? null;
         @endphp
         <div class="tile group relative break-inside-avoid bg-surface border border-line overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
              style="animation: tileIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; animation-delay: {{ min($i * 28, 600) }}ms;"
              data-variant-id="{{ $variant->id }}" data-ad-w="{{ $variant->size_width }}" data-ad-h="{{ $variant->size_height }}">
             @if($score !== null)
-                {{-- Score badge overlay, top-right of the ad area --}}
-                <div class="absolute top-2 right-2 z-10 inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-ink/85 backdrop-blur text-white shadow-sm">
+                <div class="absolute top-2 right-2 z-10 inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-ink/85 backdrop-blur text-white shadow-sm"
+                     @if($rationale) title="{{ $rationale }}" @endif>
                     <span class="w-1.5 h-1.5 rounded-full" style="background: {{ $scoreColor }};"></span>
                     <span class="text-xs font-bold" style="font-variant-numeric: tabular-nums;">{{ number_format($score, 0) }}</span>
                 </div>
@@ -104,6 +117,20 @@
                 </div>
             @endif
 
+            @php
+                $styleBadge = match($variant->style) {
+                    'animated' => ['Animated',  'bg-primary/15 text-primary'],
+                    'creative' => ['Creative',  'bg-accent/15 text-accent'],
+                    'social'   => ['Social',    'bg-success/15 text-success'],
+                    'showcase' => ['★ Showcase', 'bg-gradient-to-r from-primary to-accent text-white'],
+                    default    => null,
+                };
+            @endphp
+            @if($styleBadge)
+                <span class="absolute top-2 left-2 z-10 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide backdrop-blur-sm {{ $styleBadge[1] }}">
+                    {{ $styleBadge[0] }}
+                </span>
+            @endif
             <div class="relative bg-bgmain" style="aspect-ratio: {{ $variant->size_width }}/{{ $variant->size_height }};">
                 @if($variant->html)
                     <iframe data-ad-frame

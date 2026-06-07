@@ -71,10 +71,17 @@ class TopUpCampaignAdsJob implements ShouldQueue
 
         // Gemini call. The service generates a fresh brand summary too —
         // we discard it since the campaign already has one; only the
-        // concepts portion matters here.
-        $payload = $session
-            ? $service->generate($session, $eventList, $need)
-            : ['concepts' => []];
+        // concepts portion matters here. Quota errors are silently absorbed
+        // here so the hourly cron doesn't fill failed_jobs with dozens of
+        // copies of the same billing-cap stacktrace.
+        try {
+            $payload = $session
+                ? $service->generate($session, $eventList, $need)
+                : ['concepts' => []];
+        } catch (\App\Exceptions\GeminiQuotaExceededException $e) {
+            Log::warning("TopUpCampaignAdsJob: skipping campaign={$campaign->id} — Gemini quota exceeded");
+            return;
+        }
 
         $newVariantIds = [];
         foreach ($payload['concepts'] as $c) {

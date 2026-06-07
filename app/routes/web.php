@@ -9,6 +9,7 @@ use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\PixelController;
 use App\Http\Controllers\ReportingController;
 use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\SupportController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -23,6 +24,9 @@ Route::get('/create/{session}/preview', [OnboardingController::class, 'preview']
 Route::get('/create/{session}/renders', [OnboardingController::class, 'renders'])->name('create.renders');
 Route::get('/create/{session}/claim', [OnboardingController::class, 'claim'])->name('create.claim');
 Route::post('/create/{session}/claim', [OnboardingController::class, 'storeAccount'])->name('create.claim.store');
+
+// Support chat bubble (public — anonymous visitors can ping us too)
+Route::post('/support/message', [SupportController::class, 'store'])->name('support.store');
 
 // Pixel
 Route::get('/pixel.js', [PixelController::class, 'script'])->name('pixel.script');
@@ -53,4 +57,12 @@ Route::middleware(['auth'])->group(function () {
         request()->session()->regenerateToken();
         return redirect()->route('create.index');
     })->name('logout');
+
+    // Admin-only inbox (gated by is_admin column on users).
+    Route::middleware('admin')->prefix('admin')->name('admin.')->group(function () {
+        Route::get('/support', [\App\Http\Controllers\Admin\SupportController::class, 'index'])->name('support.index');
+        Route::get('/support/{message}', [\App\Http\Controllers\Admin\SupportController::class, 'show'])->name('support.show');
+        Route::patch('/support/{message}', [\App\Http\Controllers\Admin\SupportController::class, 'update'])->name('support.update');
+        Route::delete('/support/{message}', [\App\Http\Controllers\Admin\SupportController::class, 'destroy'])->name('support.destroy');
+    });
 });

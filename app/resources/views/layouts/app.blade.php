@@ -82,9 +82,14 @@
                     ['route' => 'reporting.index',    'label' => 'Reporting',    'icon' => 'chart'],
                     ['route' => 'settings.index',     'label' => 'Settings',     'icon' => 'cog'],
                 ];
+                if (auth()->user()?->is_admin) {
+                    $openSupport = \App\Models\SupportMessage::where('status', 'open')->count();
+                    $nav[] = ['route' => 'admin.support.index', 'label' => 'Support inbox', 'icon' => 'inbox',
+                              'badge' => $openSupport ?: null, 'routePattern' => 'admin.support.*'];
+                }
             @endphp
             @foreach($nav as $item)
-                @php $active = request()->routeIs($item['route']); @endphp
+                @php $active = isset($item['routePattern']) ? request()->routeIs($item['routePattern']) : request()->routeIs($item['route']); @endphp
                 <a href="{{ route($item['route']) }}"
                    @click="navOpen = false"
                    class="group flex items-center gap-2.5 px-3 py-2 rounded-lg transition {{ $active ? 'bg-primary/10 text-primary font-semibold' : 'text-muted hover:bg-bgmain hover:text-ink' }}">
@@ -95,11 +100,14 @@
                                 @case('plug')  <path d="M9 2v6M15 2v6M6 8h12v3a6 6 0 0 1-12 0V8zM12 17v5"/> @break
                                 @case('chart') <path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/> @break
                                 @case('cog')   <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/> @break
+                                @case('inbox') <path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/> @break
                             @endswitch
                         </svg>
                     </span>
                     <span class="flex-1">{{ $item['label'] }}</span>
-                    @if($active)
+                    @if(!empty($item['badge']))
+                        <span class="px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-warning/15 text-warning" style="font-variant-numeric: tabular-nums;">{{ $item['badge'] }}</span>
+                    @elseif($active)
                         <span class="w-1 h-4 rounded-full bg-primary"></span>
                     @endif
                 </a>
@@ -156,5 +164,6 @@
         </main>
     </div>
 
+    <x-support-chat />
 </body>
 </html>

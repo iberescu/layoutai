@@ -146,11 +146,9 @@
                 $sizes = [
                     '300x250' => ['name' => 'Medium rectangle',  'img' => 'example-rectangle.jpg'],
                     '336x280' => ['name' => 'Large rectangle',   'img' => 'example-rectangle.jpg'],
-                    '728x90'  => ['name' => 'Leaderboard',       'img' => 'example-leaderboard.jpg'],
                     '970x250' => ['name' => 'Billboard',         'img' => 'example-leaderboard.jpg'],
                     '160x600' => ['name' => 'Wide skyscraper',   'img' => 'example-skyscraper.jpg'],
                     '300x600' => ['name' => 'Half page',         'img' => 'example-skyscraper.jpg'],
-                    '320x50'  => ['name' => 'Mobile leaderboard','img' => 'example-leaderboard.jpg'],
                     '320x100' => ['name' => 'Large mobile',      'img' => 'example-leaderboard.jpg'],
                     '468x60'  => ['name' => 'Banner',            'img' => 'example-leaderboard.jpg'],
                     '250x250' => ['name' => 'Square',            'img' => 'example-square.jpg'],
@@ -199,7 +197,7 @@
                 From <span class="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">1,000 ads</span> down to the 10 that actually work.
             </h2>
             <p class="text-white/65 text-lg leading-relaxed">
-                We generate at scale, score every creative against a neural model that predicts human attention, then validate the best on real Google Display inventory. Each phase prunes the field — you only ever spend on ads that already cleared two earlier gates.
+                We generate at scale, validate every creative on real Google Display inventory, then promote the ads that earn it. Each phase prunes the field — you only ever spend on ads that proved themselves in the previous round.
             </p>
         </div>
 
@@ -271,114 +269,16 @@
                 </div>
             </div>
 
-            {{-- PHASE 2 — Score with TRIBE v2 --}}
-            <div class="grid lg:grid-cols-12 gap-10 lg:gap-12 items-center">
-                <div class="lg:col-span-7 order-2 lg:order-1">
-                    {{-- Visual: a "brain scoring" diagram — abstract brain SVG with score readouts --}}
-                    <div class="relative rounded-3xl border border-white/10 bg-gradient-to-br from-white/[0.04] to-white/[0.01] p-6 md:p-8 backdrop-blur-sm overflow-hidden">
-                        <div class="absolute top-4 right-4 text-[10px] font-mono tracking-wider uppercase text-white/40">tribe.v2 · score.engine</div>
-
-                        <div class="grid grid-cols-12 gap-5 items-center">
-                            {{-- Brain SVG with concentric "scanning" rings --}}
-                            <div class="col-span-5 relative">
-                                <svg viewBox="0 0 200 200" class="w-full h-auto">
-                                    <defs>
-                                        <radialGradient id="brainGlow" cx="50%" cy="50%" r="50%">
-                                            <stop offset="0%"  stop-color="#7C3AED" stop-opacity="0.45"/>
-                                            <stop offset="60%" stop-color="#2563EB" stop-opacity="0.1"/>
-                                            <stop offset="100%" stop-color="#2563EB" stop-opacity="0"/>
-                                        </radialGradient>
-                                        <linearGradient id="brainStroke" x1="0" y1="0" x2="1" y2="1">
-                                            <stop offset="0%" stop-color="#60A5FA"/>
-                                            <stop offset="100%" stop-color="#C4B5FD"/>
-                                        </linearGradient>
-                                    </defs>
-                                    <circle cx="100" cy="100" r="92" fill="url(#brainGlow)"/>
-                                    {{-- Scanning rings --}}
-                                    <circle cx="100" cy="100" r="84" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
-                                    <circle cx="100" cy="100" r="68" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1" stroke-dasharray="2 4"/>
-                                    <circle cx="100" cy="100" r="52" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
-                                    {{-- Stylized brain (two hemispheres of organic curves) --}}
-                                    <g fill="none" stroke="url(#brainStroke)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="M100 50 C 70 50 55 70 55 90 C 50 95 48 102 50 110 C 48 120 55 132 70 138 C 78 148 92 152 100 148 L 100 50 Z"/>
-                                        <path d="M100 50 C 130 50 145 70 145 90 C 150 95 152 102 150 110 C 152 120 145 132 130 138 C 122 148 108 152 100 148 L 100 50 Z"/>
-                                        <path d="M70 80 C 78 85 84 92 86 100" opacity="0.7"/>
-                                        <path d="M114 100 C 116 92 122 85 130 80" opacity="0.7"/>
-                                        <path d="M75 115 C 82 118 88 120 95 118" opacity="0.5"/>
-                                        <path d="M105 118 C 112 120 118 118 125 115" opacity="0.5"/>
-                                    </g>
-                                    {{-- Pulse nodes --}}
-                                    <circle cx="78" cy="92" r="2.5" fill="#60A5FA"><animate attributeName="opacity" values="0.3;1;0.3" dur="2s" repeatCount="indefinite"/></circle>
-                                    <circle cx="125" cy="100" r="2.5" fill="#C4B5FD"><animate attributeName="opacity" values="1;0.3;1" dur="2.4s" repeatCount="indefinite"/></circle>
-                                    <circle cx="100" cy="125" r="2.5" fill="#34D399"><animate attributeName="opacity" values="0.3;1;0.3" dur="2.8s" repeatCount="indefinite"/></circle>
-                                </svg>
-                            </div>
-
-                            {{-- Right side: a list of ads with scores --}}
-                            <div class="col-span-7 space-y-2 font-mono text-xs">
-                                @php
-                                    $rows = [
-                                        ['ad-0421', 94, 'pass'],
-                                        ['ad-0188', 89, 'pass'],
-                                        ['ad-0903', 81, 'pass'],
-                                        ['ad-0556', 63, 'mid'],
-                                        ['ad-0042', 47, 'fail'],
-                                        ['ad-0717', 22, 'fail'],
-                                    ];
-                                @endphp
-                                @foreach($rows as $r)
-                                    @php
-                                        $color = $r[2] === 'pass' ? '#34D399' : ($r[2] === 'mid' ? '#F59E0B' : '#64748B');
-                                        $width = $r[1];
-                                    @endphp
-                                    <div class="flex items-center gap-3">
-                                        <span class="w-16 text-white/50">{{ $r[0] }}</span>
-                                        <span class="flex-1 h-1.5 rounded-full bg-white/5 overflow-hidden relative">
-                                            <span class="absolute inset-y-0 left-0 rounded-full" style="width: {{ $width }}%; background: {{ $color }};"></span>
-                                        </span>
-                                        <span class="w-8 text-right font-bold" style="color: {{ $color }};">{{ $r[1] }}</span>
-                                    </div>
-                                @endforeach
-                                <div class="pt-3 mt-3 border-t border-white/10 flex items-center justify-between text-white/40 text-[10px] uppercase tracking-wider">
-                                    <span>predicted neural response</span>
-                                    <span>score / 100</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="lg:col-span-5 order-1 lg:order-2">
-                    <div class="flex items-center gap-3 mb-5">
-                        <span class="text-xs font-bold tracking-[0.18em] uppercase text-accent" style="font-variant-numeric: tabular-nums;">Phase 02</span>
-                        <span class="flex-1 h-px bg-gradient-to-r from-accent/40 to-transparent"></span>
-                    </div>
-                    <h3 class="text-3xl md:text-4xl font-bold tracking-tight mb-4">
-                        Score every ad with <span class="bg-gradient-to-r from-accent to-pink-400 bg-clip-text text-transparent">Meta's TRIBE v2</span>.
-                    </h3>
-                    <p class="text-white/70 leading-relaxed mb-4">
-                        TRIBE v2 is Meta AI's neural-response foundation model — a digital twin of how the human brain reacts to visual, auditory, and language stimuli, trained on more than <strong class="text-white">700 volunteers</strong> with a <strong class="text-white">70× resolution</strong> increase over prior approaches.
-                    </p>
-                    <p class="text-white/70 leading-relaxed mb-6">
-                        We score every creative against it. The bottom 70% never sees a live impression — you stop paying for ads the brain wouldn't notice anyway.
-                    </p>
-                    <a href="https://ai.meta.com/blog/tribe-v2-brain-predictive-foundation-model/" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 text-sm font-semibold text-accent hover:text-pink-300 transition-colors group">
-                        Read the TRIBE v2 announcement
-                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" class="transition-transform group-hover:translate-x-0.5"><path d="M7 17L17 7M9 7h8v8"/></svg>
-                    </a>
-                </div>
-            </div>
-
-            {{-- PHASE 3 — Test on Google Display Network --}}
+            {{-- PHASE 2 — Test on Google Display Network --}}
             <div class="grid lg:grid-cols-12 gap-10 lg:gap-12 items-center">
                 <div class="lg:col-span-5">
                     <div class="flex items-center gap-3 mb-5">
-                        <span class="text-xs font-bold tracking-[0.18em] uppercase text-success" style="font-variant-numeric: tabular-nums;">Phase 03</span>
+                        <span class="text-xs font-bold tracking-[0.18em] uppercase text-success" style="font-variant-numeric: tabular-nums;">Phase 02</span>
                         <span class="flex-1 h-px bg-gradient-to-r from-success/40 to-transparent"></span>
                     </div>
-                    <h3 class="text-3xl md:text-4xl font-bold tracking-tight mb-4">Validate the top 30 on real Google Display inventory.</h3>
+                    <h3 class="text-3xl md:text-4xl font-bold tracking-tight mb-4">Validate the 30 strongest on real Google Display inventory.</h3>
                     <p class="text-white/70 leading-relaxed mb-6">
-                        Predicted scores get you 80% of the way there. The remaining 20% is the messy reality of context — placement, time of day, audience overlap. So we ship the highest-scored 30 ads to <strong class="text-white">Google Display Network</strong> on small budgets and measure actual CTR, view-through, and downstream conversions.
+                        Pre-flight signals — copy strength, contrast, CTA visibility, brand fit — get you part of the way there. The rest is the messy reality of context: placement, time of day, audience overlap. So we ship the 30 strongest ads to <strong class="text-white">Google Display Network</strong> on small budgets and measure actual CTR, view-through, and downstream conversions.
                     </p>
                     <dl class="grid grid-cols-2 gap-x-6 gap-y-4 mt-8 max-w-md">
                         <div>
@@ -447,7 +347,7 @@
                 </div>
             </div>
 
-            {{-- PHASE 4 — Keep the winners --}}
+            {{-- PHASE 3 — Keep the winners --}}
             <div class="grid lg:grid-cols-12 gap-10 lg:gap-12 items-center">
                 <div class="lg:col-span-7 order-2 lg:order-1">
                     {{-- Visual: a winner's "leaderboard" — top 3 ads with podium ranks --}}
@@ -484,7 +384,7 @@
                 </div>
                 <div class="lg:col-span-5 order-1 lg:order-2">
                     <div class="flex items-center gap-3 mb-5">
-                        <span class="text-xs font-bold tracking-[0.18em] uppercase text-warning" style="font-variant-numeric: tabular-nums;">Phase 04</span>
+                        <span class="text-xs font-bold tracking-[0.18em] uppercase text-warning" style="font-variant-numeric: tabular-nums;">Phase 03</span>
                         <span class="flex-1 h-px bg-gradient-to-r from-warning/40 to-transparent"></span>
                     </div>
                     <h3 class="text-3xl md:text-4xl font-bold tracking-tight mb-4">Keep the 10 ads that earned it. Retire the rest.</h3>
@@ -512,12 +412,11 @@
 
         {{-- Funnel summary strip at the bottom of the section --}}
         <div class="mt-20 pt-10 border-t border-white/10">
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-px bg-white/10 rounded-2xl overflow-hidden">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-px bg-white/10 rounded-2xl overflow-hidden">
                 @foreach([
-                    ['1,024',  'Generated',   'AI-drafted creatives',           '#60A5FA'],
-                    ['307',    'Scored top', 'Above TRIBE v2 attention floor', '#C4B5FD'],
-                    ['30',     'Live tested', 'Served on Google Display',       '#34D399'],
-                    ['10',     'Winners',     'Keep your impressions',          '#FBBF24'],
+                    ['1,024',  'Generated',   'AI-drafted creatives',     '#60A5FA'],
+                    ['30',     'Live tested', 'Served on Google Display', '#34D399'],
+                    ['10',     'Winners',     'Keep your impressions',    '#FBBF24'],
                 ] as $i => $stat)
                     <div class="p-6 bg-ink relative group">
                         <div class="absolute top-4 right-4 text-[10px] font-mono text-white/30">→</div>

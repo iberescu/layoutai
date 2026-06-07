@@ -43,8 +43,10 @@ class BuildAdHtmlBatchJob implements ShouldQueue
             return;
         }
 
-        $ready = $variants->filter(fn ($v) => $v->image?->stored_url);
-        $waiting = $variants->reject(fn ($v) => $v->image?->stored_url);
+        // Showcase ads never get a photo — they render from inline SVG. They
+        // are always "ready" for the HTML build regardless of image state.
+        $ready   = $variants->filter(fn ($v) => $v->style === 'showcase' || $v->image?->stored_url);
+        $waiting = $variants->reject(fn ($v) => $v->style === 'showcase' || $v->image?->stored_url);
 
         if ($ready->isEmpty()) {
             // No images yet; back off and try again.
@@ -75,12 +77,11 @@ class BuildAdHtmlBatchJob implements ShouldQueue
             // PNG render skipped on critical path — frontend uses the HTML
             // directly via <iframe srcdoc>. Re-enable when PNG export ships:
             // RenderAdJob::dispatch($variant->id);
-
-            // TRIBE v2 creative scoring (hosted GPU). Staggered so the
-            // remote endpoint doesn't get a thundering herd.
-            ScoreAdVariantJob::dispatch($variant->id)
-                ->delay(now()->addSeconds(2 + ($variant->id % 8)));
         }
+        // Scoring moved out of this job — see GenerateAdTemplatesJob, which
+        // sweeps every unscored variant once after `preview_ready` is reached.
+        // Keeps the build phase free of Gemini scoring contention so HTML
+        // batches return faster and /preview becomes interactive sooner.
 
         // Anything still waiting on its image goes into the next pass.
         if ($waiting->isNotEmpty() && $this->attempts < 8) {
