@@ -84,6 +84,8 @@
                     ['route' => 'settings.index',     'label' => 'Settings',     'icon' => 'cog'],
                 ];
                 if (auth()->user()?->is_admin) {
+                    $nav[] = ['route' => 'admin.brands.index', 'label' => 'Brands (CRM)', 'icon' => 'chart',
+                              'routePattern' => 'admin.brands.*'];
                     $openSupport = \App\Models\SupportMessage::where('status', 'open')->count();
                     $nav[] = ['route' => 'admin.support.index', 'label' => 'Support inbox', 'icon' => 'inbox',
                               'badge' => $openSupport ?: null, 'routePattern' => 'admin.support.*'];

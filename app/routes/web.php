@@ -64,6 +64,7 @@ Route::middleware(['auth'])->group(function () {
 
     // Admin-only inbox (gated by is_admin column on users).
     Route::middleware('admin')->prefix('admin')->name('admin.')->group(function () {
+        Route::get('/brands', [\App\Http\Controllers\Admin\BrandController::class, 'index'])->name('brands.index');
         Route::get('/support', [\App\Http\Controllers\Admin\SupportController::class, 'index'])->name('support.index');
         Route::get('/support/{message}', [\App\Http\Controllers\Admin\SupportController::class, 'show'])->name('support.show');
         Route::patch('/support/{message}', [\App\Http\Controllers\Admin\SupportController::class, 'update'])->name('support.update');

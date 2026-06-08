@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 class BrandProfile extends Model
 {
@@ -40,6 +42,30 @@ class BrandProfile extends Model
     public function logoAsset(): BelongsTo
     {
         return $this->belongsTo(UploadedAsset::class, 'logo_asset_id');
+    }
+
+    public function campaigns(): HasMany
+    {
+        return $this->hasMany(Campaign::class);
+    }
+
+    /** All ad variants generated for this brand (across its campaigns). */
+    public function adVariants(): HasManyThrough
+    {
+        return $this->hasManyThrough(AdVariant::class, Campaign::class, 'brand_profile_id', 'campaign_id');
+    }
+
+    /** Best available logo for display: uploaded asset → crawl-extracted → none. */
+    public function displayLogoUrl(): ?string
+    {
+        try {
+            if ($url = $this->logoAsset?->url()) {
+                return $url;
+            }
+        } catch (\Throwable) {
+            // fall through
+        }
+        return $this->visual_identity_json['logo_url'] ?? null;
     }
 
     public function primaryColor(): string
