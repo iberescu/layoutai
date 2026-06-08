@@ -41,7 +41,7 @@
     <header class="border-b border-line bg-surface/70 backdrop-blur sticky top-0 z-30">
         <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
             <a href="{{ route('create.index') }}" class="flex items-center">
-                <img src="{{ asset('img/logo.png') }}" alt="Layout.ai — Sell more" class="h-9 w-auto">
+                <img src="{{ asset('img/logo.png') }}?v={{ @filemtime(public_path('img/logo.png')) }}" alt="Layout.ai" class="h-9 w-auto">
             </a>
             <nav class="hidden md:flex items-center gap-8 text-sm text-muted">
                 <a href="#pipeline" class="hover:text-ink">How it works</a>

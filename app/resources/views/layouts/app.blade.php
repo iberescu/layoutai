@@ -46,7 +46,7 @@
            :class="navOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'">
         <div class="flex items-center justify-between px-6 pt-6 pb-3">
             <a href="{{ route('dashboard') }}" class="flex items-center" @click="navOpen = false">
-                <img src="{{ asset('img/logo.png') }}" alt="Layout.ai — Sell more" class="h-9 w-auto">
+                <img src="{{ asset('img/logo.png') }}?v={{ @filemtime(public_path('img/logo.png')) }}" alt="Layout.ai" class="h-9 w-auto">
             </a>
             {{-- Close drawer button — mobile only --}}
             <button type="button" @click="navOpen = false"
