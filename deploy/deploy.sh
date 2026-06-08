@@ -111,6 +111,10 @@ GEMINI_MODEL=$(grep -E '^GEMINI_MODEL=' .env | cut -d= -f2- | sed 's/^$/gemini-2
 GEMINI_COMBINED_MODEL=gemini-3.5-flash
 CLOUDFLARE_API_TOKEN=$(grep -E '^CLOUDFLARE_API_TOKEN=' .env | cut -d= -f2-)
 CLOUDFLARE_ACCOUNT_ID=$(grep -E '^CLOUDFLARE_ACCOUNT_ID=' .env | cut -d= -f2-)
+# Without this the CloudflareCrawler silently disables the browser-rendering
+# crawl and falls back to a plain HTTP fetch (no JS) — weaker brand/product
+# data on JS-heavy sites. {account} is substituted at runtime.
+CLOUDFLARE_CRAWL_ENDPOINT=https://api.cloudflare.com/client/v4/accounts/{account}/browser-rendering/crawl
 RUNMYPRINT_ENDPOINT=https://www.runmyprint.com/test/image2.php
 RENDERER_URL=http://renderer:3000
 
