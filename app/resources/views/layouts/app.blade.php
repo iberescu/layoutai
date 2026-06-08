@@ -21,6 +21,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    @include('partials.meta-pixel')
 </head>
 <body class="bg-bgmain text-ink font-sans antialiased h-screen flex overflow-hidden"
       x-data="{ navOpen: false }"

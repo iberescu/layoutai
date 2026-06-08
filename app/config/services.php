@@ -60,6 +60,20 @@ return [
         'internal_url' => env('INTERNAL_PUBLIC_URL', 'http://nginx'),
     ],
 
+    // Meta (Facebook/Instagram) — promote layout.ai. Marketing API for ad
+    // delivery + Pixel/Conversions API for signup-conversion tracking.
+    'meta' => [
+        'app_id'         => env('META_APP_ID'),
+        'app_secret'     => env('META_APP_SECRET'),
+        'token'          => env('META_SYSTEM_USER_TOKEN'),   // long-lived system-user token
+        'ad_account_id'  => env('META_AD_ACCOUNT_ID'),        // act_...
+        'page_id'        => env('META_PAGE_ID'),
+        'ig_account_id'  => env('META_INSTAGRAM_ACCOUNT_ID'), // optional
+        'pixel_id'       => env('META_PIXEL_ID'),
+        'capi_token'     => env('META_CAPI_TOKEN'),           // optional; falls back to system-user token
+        'graph_version'  => env('META_GRAPH_VERSION', 'v21.0'),
+    ],
+
     // Support chat. Provider switch decides which widget the
     // <x-support-chat /> Blade component renders.
     //   - 'inapp'  : (default) self-hosted bubble + form, no external cost

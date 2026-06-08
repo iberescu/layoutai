@@ -220,6 +220,30 @@ class OnboardingController extends Controller
             Log::warning('Lifecycle email dispatch failed: ' . $e->getMessage());
         }
 
+        // Signup conversion → Meta (server-side CAPI). Flash a matching event id
+        // so the browser pixel fires a deduped Lead on the dashboard. This is
+        // what attributes the signup back to the FB/IG ad that drove it.
+        try {
+            $eventId = (string) Str::uuid();
+            $email   = strtolower(trim($data['email']));
+            app(\App\Services\MetaAdsService::class)->sendConversion(
+                'Lead',
+                array_filter([
+                    'em'                => [hash('sha256', $email)],
+                    'client_ip_address' => $request->ip(),
+                    'client_user_agent' => $request->userAgent(),
+                    'fbp'               => $request->cookie('_fbp'),
+                    'fbc'               => $request->cookie('_fbc'),
+                ]),
+                ['currency' => 'USD', 'value' => 0],
+                $eventId,
+                route('create.claim', $session->uuid),
+            );
+            session()->flash('meta_lead_event_id', $eventId);
+        } catch (\Throwable $e) {
+            Log::warning('Meta CAPI Lead failed: ' . $e->getMessage());
+        }
+
         return redirect()->route('dashboard')->with('status', 'Your $500 credit is ready.');
     }
 }

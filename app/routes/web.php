@@ -25,6 +25,10 @@ Route::get('/create/{session}/renders', [OnboardingController::class, 'renders']
 Route::get('/create/{session}/claim', [OnboardingController::class, 'claim'])->name('create.claim');
 Route::post('/create/{session}/claim', [OnboardingController::class, 'storeAccount'])->name('create.claim.store');
 
+// Legal
+Route::view('/privacy', 'pages.legal.privacy')->name('privacy');
+Route::view('/terms', 'pages.legal.terms')->name('terms');
+
 // Support chat bubble (public — anonymous visitors can ping us too)
 Route::post('/support/message', [SupportController::class, 'store'])->name('support.store');
 
