@@ -115,6 +115,8 @@ CLOUDFLARE_ACCOUNT_ID=$(grep -E '^CLOUDFLARE_ACCOUNT_ID=' .env | cut -d= -f2-)
 # crawl and falls back to a plain HTTP fetch (no JS) — weaker brand/product
 # data on JS-heavy sites. {account} is substituted at runtime.
 CLOUDFLARE_CRAWL_ENDPOINT=https://api.cloudflare.com/client/v4/accounts/{account}/browser-rendering/crawl
+CLOUDFLARE_DNS_TOKEN=$(grep -E '^CLOUDFLARE_DNS_TOKEN=' .env | cut -d= -f2-)
+CLOUDFLARE_ZONE_ID=$(grep -E '^CLOUDFLARE_ZONE_ID=' .env | cut -d= -f2-)
 RUNMYPRINT_ENDPOINT=https://www.runmyprint.com/test/image2.php
 RENDERER_URL=http://renderer:3000
 
@@ -152,6 +154,8 @@ ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@$DROPLET_IP
     docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env up -d
     docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env exec -T app php artisan migrate --force
     docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env exec -T app php artisan storage:link || true
+    # Purge the CDN so changed static assets (logo/css/js) go live immediately.
+    docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env exec -T app php artisan cloudflare:purge --all || true
     docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env ps
 "
 

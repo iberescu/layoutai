@@ -49,6 +49,10 @@ return [
         'account_id' => env('CLOUDFLARE_ACCOUNT_ID'),
         'api_token'  => env('CLOUDFLARE_API_TOKEN'),
         'endpoint'   => env('CLOUDFLARE_CRAWL_ENDPOINT'),
+        // Zone-scoped token used for CDN cache purges (separate from the
+        // account-scoped browser-rendering crawl token above).
+        'dns_token'  => env('CLOUDFLARE_DNS_TOKEN'),
+        'zone_id'    => env('CLOUDFLARE_ZONE_ID'),
     ],
 
     'runmyprint' => [
