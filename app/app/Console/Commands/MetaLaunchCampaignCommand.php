@@ -39,11 +39,39 @@ class MetaLaunchCampaignCommand extends Command
     // Creatives to run as separate ads (file under app/, + UTM variant tag + copy).
     private const CREATIVES = [
         [
-            'key'         => 'v00-base',
-            'file'        => 'storage/app/ad-base.png',
+            'key'         => 'v01-classic',
+            'file'        => 'storage/app/ad-variants/v01-classic.png',
             'headline'    => '$500 Free Ads Credit',
             'message'     => 'We generate 1,000 ads for your business, test them all, and you keep the winner. Claim your $500 ad credit — limited time.',
             'description' => '1,000 ads tested. You get the winner.',
+        ],
+        [
+            'key'         => 'v04-woman-owner',
+            'file'        => 'storage/app/ad-variants/v04-woman-owner.png',
+            'headline'    => 'Find your best ad — free',
+            'message'     => 'We generate 1,000 ads for your business and test them all. Keep the winner. $500 ad credit — limited time.',
+            'description' => '1,000 generated. Tested. Ranked.',
+        ],
+        [
+            'key'         => 'v05-bold-type',
+            'file'        => 'storage/app/ad-variants/v05-bold-type.png',
+            'headline'    => '$500 Free Ads Credit',
+            'message'     => '1,000 ads generated and tested for your business — you keep the winner. Claim your $500 credit today.',
+            'description' => 'Limited-time $500 ad credit.',
+        ],
+        [
+            'key'         => 'v06-dashboard',
+            'file'        => 'storage/app/ad-variants/v06-dashboard.png',
+            'headline'    => 'Ads that actually sell',
+            'message'     => 'We generate and test 1,000 ads for your business, then you keep the top performer. $500 credit, on us.',
+            'description' => 'Test 1,000. Keep the winner.',
+        ],
+        [
+            'key'         => 'v07-funnel',
+            'file'        => 'storage/app/ad-variants/v07-funnel.png',
+            'headline'    => 'We test 1,000. You get the winner.',
+            'message'     => 'Layout.ai generates 1,000 ads, tests them all, and hands you the winner. Claim your $500 ad credit.',
+            'description' => '$500 ad credit, on us.',
         ],
     ];
 

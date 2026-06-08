@@ -18,6 +18,7 @@ class GenerateAdVariantsCommand extends Command
 {
     protected $signature = 'ads:variants
         {--base=ads/ad.png : Reference creative (relative to repo root / app cwd)}
+        {--ref : Attach the base creative as a style reference (note: image-to-image often returns text-only)}
         {--model=gemini-2.5-flash-image : Gemini image model}
         {--only= : Generate a single variant key}';
 
@@ -39,17 +40,18 @@ class GenerateAdVariantsCommand extends Command
         if (! is_file($basePath)) {
             $basePath = base_path($this->option('base'));         // fallback
         }
-        $refData = is_file($basePath) ? base64_encode((string) file_get_contents($basePath)) : null;
-        if (! $refData) {
-            $this->warn("base creative not found at {$this->option('base')} — generating without a reference image");
-        }
+        $refData = ($this->option('ref') && is_file($basePath))
+            ? base64_encode((string) file_get_contents($basePath))
+            : null;
 
-        $preamble = 'Design a high-converting VERTICAL 9:16 mobile ad for Facebook/Instagram for "layout.ai", a SaaS that '
-            . 'auto-generates and tests display ads. Match the supplied reference for brand + style: deep navy background, '
-            . 'blue-to-violet (#2563EB→#7C3AED) accents, bold modern geometric sans-serif (Inter-like), clean premium '
-            . 'ad-agency quality. Include a clear CTA button reading "Claim My $500 Credit". Keep a small "layout.ai" wordmark. '
-            . 'CRITICAL: spell every word EXACTLY as given, render text crisp and perfectly legible, do NOT garble, warp, '
-            . 'duplicate, or invent text. Leave safe margins (no text near edges). Output a single polished ad image.';
+        $preamble = 'Design a high-converting VERTICAL 9:16 mobile ad (portrait, like a phone screen) for '
+            . 'Facebook/Instagram for "layout.ai", a SaaS that auto-generates and tests display ads. Brand style: '
+            . 'DEEP NAVY (#0B1220) background, BLUE-to-VIOLET (#2563EB→#7C3AED) accents and CTA, bold modern geometric '
+            . 'sans-serif (Inter-like), clean premium ad-agency quality, strong contrast, generous safe margins. '
+            . 'Include a pill CTA button reading exactly "Claim My $500 Credit" and a small "layout.ai" wordmark. '
+            . 'CRITICAL: spell every word EXACTLY as given, render all text crisp, correctly spelled and perfectly '
+            . 'legible — do NOT garble, warp, duplicate, or invent text, and keep text away from the edges. '
+            . 'Output ONE single polished vertical ad image.';
 
         $variants = [
             'v01-classic'      => 'Concept: refined version of the reference. Headline "$500 FREE ADS CREDIT". Subtext "We generate 1,000 ads. We test them all. You get the winner." A confident male small-business owner, subtle rising chart behind.',
