@@ -14,7 +14,7 @@ class BrandProfile extends Model
         'industry', 'description', 'target_audience_json', 'brand_voice_json',
         'colors_json', 'visual_identity_json', 'proof_points_json',
         'ctas_json', 'compliance_risks_json', 'logo_asset_id',
-        'fonts_json', 'is_ecommerce', 'ecommerce_platform',
+        'fonts_json', 'is_ecommerce', 'ecommerce_platform', 'ad_target_country',
     ];
 
     protected $casts = [

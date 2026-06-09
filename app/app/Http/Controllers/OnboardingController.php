@@ -45,9 +45,9 @@ class OnboardingController extends Controller
         }
 
         $data = $request->validate([
-            'website_url'       => ['required', 'url', 'max:2048'],
-            'business_location' => ['nullable', 'string', 'max:255'],
-            'campaign_goal'     => ['nullable', 'string', Rule::in(['awareness','traffic','leads','sales'])],
+            'website_url'        => ['required', 'url', 'max:2048'],
+            'ad_target_country'  => ['nullable', 'string', Rule::in(array_keys(config('countries')))],
+            'campaign_goal'      => ['nullable', 'string', Rule::in(['awareness','traffic','leads','sales'])],
             'logo'              => ['nullable', 'file', 'image', 'max:5120'],
             'logo_colors'       => ['nullable', 'array', 'max:8'],
             'logo_colors.*'     => ['string', 'regex:/^#[0-9a-fA-F]{6}$/'],

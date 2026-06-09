@@ -147,8 +147,8 @@ class MetaAdsService
         return (string) $out['id'];
     }
 
-    /** USA + interests/behaviors targeting spec for FB+IG. */
-    public function usaTargeting(array $interestIds, array $behaviorIds): array
+    /** Country (ISO-2) + interests/behaviors targeting spec for FB+IG. */
+    public function targeting(array $countries, array $interestIds, array $behaviorIds): array
     {
         $group = [];
         if ($interestIds) {
@@ -158,13 +158,19 @@ class MetaAdsService
             $group['behaviors'] = array_map(fn ($id) => ['id' => (string) $id], $behaviorIds);
         }
         return [
-            'geo_locations'       => ['countries' => ['US']],
+            'geo_locations'       => ['countries' => array_values(array_map('strtoupper', $countries ?: ['US']))],
             'publisher_platforms' => ['facebook', 'instagram'],
             'flexible_spec'       => [$group],
             'age_min'             => 22,
             // Use our defined interest/behavior targeting, not Advantage+ audience.
             'targeting_automation' => ['advantage_audience' => 0],
         ];
+    }
+
+    /** Back-compat: US-only targeting. */
+    public function usaTargeting(array $interestIds, array $behaviorIds): array
+    {
+        return $this->targeting(['US'], $interestIds, $behaviorIds);
     }
 
     /**

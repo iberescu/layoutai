@@ -31,10 +31,16 @@ class CreateOnboardingSession
         // waste 60s on a www-mismatch or http-only host.
         $resolved = $this->urlResolver->resolve((string) $input['website_url']);
 
+        // Ad target country (ISO-2). Also mirror its display name into
+        // business_location so the brand prompt keeps a human location string.
+        $country = strtoupper((string) ($input['ad_target_country'] ?? 'US'));
+        $countryName = config("countries.{$country}");
+
         $session = OnboardingSession::create([
-            'website_url'       => $resolved,
-            'business_location' => $input['business_location'] ?? null,
-            'campaign_goal'     => $input['campaign_goal'] ?? null,
+            'website_url'        => $resolved,
+            'ad_target_country'  => $countryName ? $country : null,
+            'business_location'  => $countryName ?: ($input['business_location'] ?? null),
+            'campaign_goal'      => $input['campaign_goal'] ?? null,
             'logo_colors_json'  => $logoColors ?: null,
             'status'            => 'queued',
             'steps'             => [

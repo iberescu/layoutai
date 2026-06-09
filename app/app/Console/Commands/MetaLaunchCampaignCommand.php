@@ -21,6 +21,7 @@ class MetaLaunchCampaignCommand extends Command
         {--event=LEAD : Pixel conversion event to optimize for}
         {--no-pixel : Optimize for link clicks instead of conversions (cold-pixel fallback)}
         {--name=Layout.ai – $500 Credit (US) : Campaign name}
+        {--country=US : ISO-2 country to target (geo_locations); e.g. US, GB, DE}
         {--adset= : Resume — add the creatives/ads to this existing ad set id (skip campaign+adset creation)}';
 
     protected $description = 'Create the layout.ai FB/IG acquisition campaign (PAUSED) on Meta';
@@ -92,7 +93,7 @@ class MetaLaunchCampaignCommand extends Command
             return self::FAILURE;
         }
 
-        $targeting = $meta->usaTargeting(self::INTERESTS, self::BEHAVIORS);
+        $targeting = $meta->targeting([strtoupper((string) $this->option('country'))], self::INTERESTS, self::BEHAVIORS);
 
         try {
             // Resume mode: reuse an existing ad set (e.g. after flipping the app

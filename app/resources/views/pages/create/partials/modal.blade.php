@@ -43,8 +43,13 @@
             </div>
             <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-sm font-medium mb-1.5">Business location</label>
-                    <input x-model="businessLocation" type="text" name="business_location" placeholder="Bucharest, Romania" class="w-full rounded-xl border-line focus:ring-primary focus:border-primary">
+                    <label class="block text-sm font-medium mb-1.5">Ad target country</label>
+                    <select x-model="adTargetCountry" name="ad_target_country" class="w-full rounded-xl border-line focus:ring-primary focus:border-primary">
+                        @foreach(config('countries') as $code => $name)
+                            <option value="{{ $code }}">{{ $name }}</option>
+                        @endforeach
+                    </select>
+                    <span class="text-[10px] text-muted/70">where your ads will run</span>
                 </div>
                 <div>
                     <label class="block text-sm font-medium mb-1.5">Campaign goal</label>

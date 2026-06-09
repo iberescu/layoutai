@@ -604,7 +604,7 @@ function createCampaignForm() {
         open: false,
         loading: false,
         websiteUrl: '',
-        businessLocation: '',
+        adTargetCountry: 'US',
         campaignGoal: 'awareness',
         logoPreview: null,
         logoColors: [],
@@ -624,7 +624,7 @@ function createCampaignForm() {
             const form = event.target;
             const data = new FormData(form);
             data.append('website_url', this.websiteUrl);
-            data.append('business_location', this.businessLocation);
+            data.append('ad_target_country', this.adTargetCountry);
             data.append('campaign_goal', this.campaignGoal);
             for (const c of this.logoColors) data.append('logo_colors[]', c);
             try {

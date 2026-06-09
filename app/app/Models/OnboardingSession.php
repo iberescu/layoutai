@@ -12,7 +12,7 @@ use Illuminate\Support\Str;
 class OnboardingSession extends Model
 {
     protected $fillable = [
-        'uuid', 'website_url', 'logo_path', 'business_location',
+        'uuid', 'website_url', 'logo_path', 'business_location', 'ad_target_country',
         'campaign_goal', 'user_id', 'workspace_id', 'brand_profile_id',
         'status', 'steps', 'error', 'logo_colors_json',
     ];

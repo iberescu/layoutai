@@ -240,6 +240,7 @@ class SummarizeBrandWithGeminiJob implements ShouldQueue
             'workspace_id'           => $session->workspace_id,
             'onboarding_session_id'  => $session->id,
             'website_url'            => $session->website_url,
+            'ad_target_country'      => $session->ad_target_country,
             'company_name'           => $payload['company_name']        ?? null,
             'industry'               => $payload['industry']            ?? null,
             'description'            => $payload['short_description']   ?? null,
