@@ -120,6 +120,11 @@ CLOUDFLARE_ZONE_ID=$(grep -E '^CLOUDFLARE_ZONE_ID=' .env | cut -d= -f2-)
 RUNMYPRINT_ENDPOINT=https://www.runmyprint.com/test/image2.php
 RENDERER_URL=http://renderer:3000
 
+# Leadmaker — auto-create + daily status sync of acquisition campaigns. Without
+# the key the leadmaker:* crons no-op (configured() is false).
+LEADMAKER_BASE_URL=https://campaigns.leadmaker.ai
+LEADMAKER_API_KEY=$(grep -E '^LEADMAKER_API_KEY=' .env | cut -d= -f2-)
+
 EOF
 # Strip any CRLF carryover from a Windows-edited deploy.sh — Gemini and
 # Cloudflare both reject API tokens that have a trailing \r.

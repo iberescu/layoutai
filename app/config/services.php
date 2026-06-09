@@ -78,6 +78,14 @@ return [
         'graph_version'  => env('META_GRAPH_VERSION', 'v21.0'),
     ],
 
+    // Leadmaker (campaigns.leadmaker.ai) — auto-create + daily-sync an
+    // acquisition campaign for every onboarded customer. The API key authorizes
+    // both the create POST and the daily status GET.
+    'leadmaker' => [
+        'base' => env('LEADMAKER_BASE_URL', 'https://campaigns.leadmaker.ai'),
+        'key'  => env('LEADMAKER_API_KEY'),
+    ],
+
     // Support chat. Provider switch decides which widget the
     // <x-support-chat /> Blade component renders.
     //   - 'inapp'  : (default) self-hosted bubble + form, no external cost

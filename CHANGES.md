@@ -80,6 +80,22 @@ and the scheduler from racing each other.
 
 ## Significant changes
 
+### Leadmaker campaign auto-provisioning + daily status sync (2026-06-09)
+Every onboarded customer now gets a campaign created on
+`campaigns.leadmaker.ai`, polled daily for status:
+- `OnboardingController::storeAccount` inserts a `pending`
+  `leadmaker_campaigns` row (idempotent on `workspace_id`) snapshotting the
+  url + derived timezone (from `ad_target_country`) + customer name/email/company.
+  Signup never blocks on the external call.
+- `leadmaker:sync-new-campaigns` (cron, every minute) POSTs each pending row to
+  `/api/campaigns`, stores the returned `external_id` + `token`, flips it to
+  `active`; retries up to 5× then marks `failed`.
+- `leadmaker:fetch-statuses` (cron, daily 06:00) GETs
+  `/api/campaigns/{id}/status?token=…` for every active campaign and appends a
+  snapshot row to **`leadmaker_campaign_statuses`** (the status data table).
+- `LeadmakerService` wraps both calls (Bearer `LEADMAKER_API_KEY`), with a
+  country→IANA-timezone map. Config in `services.leadmaker`.
+
 ### Pre-built templates, brand-font matching & ecommerce product ads (2026-06-07)
 The initial ad set is no longer 30 Gemini-authored ads:
 - **Non-shops** → **20 template + 10 Gemini = 30**.

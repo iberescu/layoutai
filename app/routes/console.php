@@ -23,6 +23,21 @@ Schedule::command('layout:send-campaign-reminders')
     ->dailyAt('09:30')
     ->onOneServer();
 
+// New-signup → Leadmaker acquisition campaign. Onboarding inserts a 'pending'
+// leadmaker_campaigns row; this picks it up and does the actual POST so signup
+// isn't blocked on the external call (failed creates retry next tick).
+Schedule::command('leadmaker:sync-new-campaigns')
+    ->everyMinute()
+    ->withoutOverlapping(10)
+    ->onOneServer()
+    ->runInBackground();
+
+// Daily: pull each active Leadmaker campaign's status into
+// leadmaker_campaign_statuses (one snapshot row per campaign per day).
+Schedule::command('leadmaker:fetch-statuses')
+    ->dailyAt('06:00')
+    ->onOneServer();
+
 // Daily event refresh: REMOVED. No longer pulling external news feeds —
 // brand-only ad generation. The four event-source services (Weather /
 // Market / TechNews / Holiday) and the news_event_hooks table remain in

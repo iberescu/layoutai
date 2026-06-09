@@ -15,6 +15,7 @@ use App\Mail\GettingStartedEmail;
 use App\Mail\WelcomeEmail;
 use App\Models\AdVariant;
 use App\Models\Campaign;
+use App\Models\LeadmakerCampaign;
 use App\Models\OnboardingSession;
 use App\Models\User;
 use App\Models\Workspace;
@@ -151,7 +152,10 @@ class OnboardingController extends Controller
             'company_name' => ['nullable', 'string', 'max:255'],
         ]);
 
-        DB::transaction(function () use ($data, $session) {
+        $user      = null;
+        $workspace = null;
+
+        DB::transaction(function () use ($data, $session, &$user, &$workspace) {
             $user = User::create([
                 'name'     => $data['name'],
                 'email'    => $data['email'],
@@ -244,6 +248,55 @@ class OnboardingController extends Controller
             Log::warning('Meta CAPI Lead failed: ' . $e->getMessage());
         }
 
+        // Record intent to create a Leadmaker acquisition campaign for the new
+        // customer. We only insert a 'pending' row here; the actual API POST is
+        // done by the leadmaker:sync-new-campaigns cron so signup never blocks
+        // on it (and a failed create just retries).
+        try {
+            if ($user && $workspace) {
+                $this->provisionLeadmakerCampaign($user, $workspace, $session);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Leadmaker provisioning failed: ' . $e->getMessage());
+        }
+
         return redirect()->route('dashboard')->with('status', 'Your $500 credit is ready.');
+    }
+
+    /**
+     * Record intent to create a Leadmaker acquisition campaign for the newly
+     * onboarded workspace: a 'pending' leadmaker_campaigns row (idempotent on
+     * workspace_id) snapshotting the url / timezone / customer. The
+     * leadmaker:sync-new-campaigns cron performs the actual API call.
+     */
+    private function provisionLeadmakerCampaign(User $user, Workspace $workspace, OnboardingSession $session): void
+    {
+        $brand    = $session->brandProfile;
+        $url      = $brand?->website_url ?: $session->website_url;
+        $country  = $session->ad_target_country ?: $brand?->ad_target_country;
+        $timezone = \App\Services\LeadmakerService::timezoneForCountry($country);
+        $company  = $workspace->name ?: ($brand?->company_name ?: $user->name);
+
+        LeadmakerCampaign::firstOrCreate(
+            ['workspace_id' => $workspace->id],
+            [
+                'user_id'          => $user->id,
+                'url'              => $url,
+                'timezone'         => $timezone,
+                'customer_name'    => $user->name,
+                'customer_email'   => $user->email,
+                'customer_company' => $company,
+                'status'           => 'pending',
+                'request_payload'  => [
+                    'url'      => $url,
+                    'timezone' => $timezone,
+                    'customer' => [
+                        'name'    => $user->name,
+                        'email'   => $user->email,
+                        'company' => $company,
+                    ],
+                ],
+            ],
+        );
     }
 }
