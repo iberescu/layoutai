@@ -32,10 +32,8 @@ class LeadmakerService
      */
     public function createCampaign(array $payload): array
     {
-        $res = Http::withToken($this->key)
-            ->acceptJson()
+        $res = $this->http()
             ->asJson()
-            ->timeout(30)
             ->post("{$this->base}/api/campaigns", $payload);
 
         $json = $res->json() ?? [];
@@ -52,9 +50,7 @@ class LeadmakerService
      */
     public function campaignStatus(string $id, string $token): array
     {
-        $res = Http::withToken($this->key)
-            ->acceptJson()
-            ->timeout(30)
+        $res = $this->http()
             ->get("{$this->base}/api/campaigns/" . rawurlencode($id) . '/status', ['token' => $token]);
 
         $json = $res->json() ?? [];
@@ -63,6 +59,19 @@ class LeadmakerService
         }
 
         return $json;
+    }
+
+    /**
+     * Authenticated HTTP client. The key is presented BOTH as a Bearer token
+     * and as an X-API-Key header, so the request authenticates whichever scheme
+     * the Leadmaker API expects.
+     */
+    private function http(): \Illuminate\Http\Client\PendingRequest
+    {
+        return Http::withToken($this->key)
+            ->withHeaders(['X-API-Key' => $this->key])
+            ->acceptJson()
+            ->timeout(30);
     }
 
     private function errorFrom(array $json, string $body): string
